@@ -7,6 +7,7 @@ import {
     useMotionTemplate, animate,
 } from "framer-motion";
 import { Activity, Clock, Disc3, ArrowDown, Share2, Music2, Star, ChevronRight } from "lucide-react";
+import { AuraDNAVisualizer } from "@/components/ui/AuraDNAVisualizer";
 
 // ══════════════════════════════════════════════════════════════════
 //  DATA — swap with API response; everything else auto-adapts
@@ -96,9 +97,9 @@ function Sep({ className = "" }: { className?: string }) {
 }
 
 // Section label pill
-function Label({ children }: { children: React.ReactNode }) {
+function Label({ children, className = "" }: { children: React.ReactNode; className?: string }) {
     return (
-        <span className="inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.28em] px-3 py-1.5 rounded-full"
+        <span className={`inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.28em] px-3 py-1.5 rounded-full ${className}`}
             style={{ background: T.glass, color: T.sub, border: `1px solid ${T.border}` }}
         >{children}</span>
     );
@@ -117,12 +118,15 @@ function RollNum({ to, unit = "" }: { to: number; unit?: string }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  1 — CINEMATIC HERO
-// ══════════════════════════════════════════════════════════════════
-function Hero({ d }: { d: typeof AURA_DATA.identity }) {
+function Hero({ d, dna }: {
+    d: typeof AURA_DATA.identity & { lastResonated?: { title: string, artist: string } | null },
+    dna?: any[]
+}) {
     const { scrollY } = useScroll();
     const y = useTransform(scrollY, [0, 600], [0, 100]);
     const fade = useTransform(scrollY, [0, 400], [1, 0]);
+    const dnaScale = useTransform(scrollY, [0, 600], [1, 1.2]);
+    const dnaOpacity = useTransform(scrollY, [0, 400], [0.15, 0]);
 
     return (
         <section className="relative w-full h-screen flex flex-col items-center justify-center overflow-hidden"
@@ -137,6 +141,14 @@ function Hero({ d }: { d: typeof AURA_DATA.identity }) {
             <div className="absolute inset-0 pointer-events-none opacity-[0.02]"
                 style={{ backgroundImage: T.noiseUrl }}
             />
+
+            {/* Aura DNA background */}
+            <motion.div
+                style={{ y, scale: dnaScale, opacity: dnaOpacity }}
+                className="absolute w-[800px] h-[800px] pointer-events-none z-0"
+            >
+                <AuraDNAVisualizer data={dna || AURA_DATA.genres} />
+            </motion.div>
 
             {/* Slow-breathing ring */}
             <motion.div
@@ -170,13 +182,19 @@ function Hero({ d }: { d: typeof AURA_DATA.identity }) {
                     <p className="text-base max-w-sm leading-relaxed" style={{ color: T.sub }}>{d.description}</p>
                 </Rise>
 
-                <Rise delay={0.52} className="mt-10">
+                <Rise delay={0.52} className="mt-10 flex flex-col items-center gap-4">
                     <div className="inline-flex items-center gap-2.5 text-xs font-semibold px-4 py-2 rounded-full"
                         style={{ background: T.glass, color: T.text, border: `1px solid ${T.border}` }}
                     >
                         <Star className="w-3.5 h-3.5" style={{ color: T.sub }} />
                         {d.badge}
                     </div>
+
+                    {d.lastResonated && (
+                        <p className="text-[9px] font-mono uppercase tracking-[0.25em] text-white/20">
+                            Last Resonated: <span className="text-white/40">{d.lastResonated.title}</span>
+                        </p>
+                    )}
                 </Rise>
             </motion.div>
 
@@ -245,7 +263,7 @@ function GenreDNA({ genres }: { genres: typeof AURA_DATA.genres }) {
                 <Card className="p-8 md:p-10">
                     <div className="flex items-start justify-between mb-8">
                         <div>
-                            <Label>Composition</Label>
+                            <Label>Sonic Identity</Label>
                             <h3 className="text-2xl font-black tracking-tight mt-4" style={{ color: T.text }}>Genre DNA</h3>
                         </div>
                     </div>
@@ -270,7 +288,7 @@ function GenreDNA({ genres }: { genres: typeof AURA_DATA.genres }) {
                                     />
                                 </div>
                                 <span className="w-8 text-right text-[10px] font-mono shrink-0" style={{ color: T.sub }}>
-                                    {g.pct}
+                                    {g.pct}%
                                 </span>
                             </div>
                         ))}
@@ -301,7 +319,7 @@ function TrackList({ tracks }: { tracks: typeof AURA_DATA.tracks }) {
                 {tracks.map((t, i) => {
                     const on = hover === t.id;
                     return (
-                        <Rise key={t.id} delay={0.05 * i}>
+                        <Rise key={`${t.id}-${i}`} delay={0.05 * i}>
                             <>
                                 {i === 0 && <Sep />}
                                 <motion.div
@@ -376,26 +394,53 @@ function TrackList({ tracks }: { tracks: typeof AURA_DATA.tracks }) {
 // ══════════════════════════════════════════════════════════════════
 //  5 — HOLOGRAM CARD (3-D tilt + glare)
 // ══════════════════════════════════════════════════════════════════
-function AuraCard({ identity, stats }: { identity: typeof AURA_DATA.identity; stats: typeof AURA_DATA.stats }) {
+function AuraCard({ identity, stats, genres }: { identity: any; stats: any; genres: any[] }) {
     const ref = useRef<HTMLDivElement>(null);
     const mx = useMotionValue(0);
     const my = useMotionValue(0);
-    const sx = useSpring(mx, { stiffness: 160, damping: 22 });
-    const sy = useSpring(my, { stiffness: 160, damping: 22 });
-    const rX = useTransform(sy, [-0.5, 0.5], ["10deg", "-10deg"]);
-    const rY = useTransform(sx, [-0.5, 0.5], ["-10deg", "10deg"]);
-    const gX = useTransform(sx, [-0.5, 0.5], ["80%", "20%"]);
-    const gY = useTransform(sy, [-0.5, 0.5], ["80%", "20%"]);
+    const sx = useSpring(mx, { stiffness: 100, damping: 25 });
+    const sy = useSpring(my, { stiffness: 100, damping: 25 });
+
+    // Smooth axial tilt
+    const rX = useTransform(sy, [-0.5, 0.5], ["12deg", "-12deg"]);
+    const rY = useTransform(sx, [-0.5, 0.5], ["-12deg", "12deg"]);
+
+    // Parallax displacements
+    const tX = useTransform(sx, [-0.5, 0.5], ["-8px", "8px"]);
+    const tY = useTransform(sy, [-0.5, 0.5], ["-8px", "8px"]);
+
+    // Holographic glare - rainbow shift
+    const glareX = useTransform(sx, [-0.5, 0.5], ["100%", "0%"]);
+    const glareY = useTransform(sy, [-0.5, 0.5], ["100%", "0%"]);
+
+    const getGenreColor = (name: string, alpha: number = 0.5) => {
+        let hash = 0;
+        if (name) {
+            for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const h = Math.abs(hash) % 360;
+        return `hsla(${h}, 70%, 65%, ${alpha})`;
+    };
+
+    const topGenreColor = genres && genres.length > 0 ? getGenreColor(genres[0].name, 0.2) : "rgba(255,255,255,0.05)";
 
     return (
-        <section className="px-5 md:px-12 pb-32 flex flex-col items-center" style={{ background: T.bg }}>
-            <Rise className="text-center mb-14">
-                <Label>Export</Label>
-                <h2 className="text-3xl md:text-4xl font-black tracking-tight mt-4" style={{ color: T.text }}>Your Vesper Label</h2>
-                <p className="text-sm mt-2" style={{ color: T.sub }}>Drag to rotate · Hover for glare</p>
+        <section className="px-5 md:px-12 pb-48 flex flex-col items-center relative overflow-hidden" style={{ background: T.bg }}>
+            {/* Background Atmosphere */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl aspect-square opacity-20 blur-[120px] pointer-events-none"
+                style={{ background: `radial-gradient(circle, ${topGenreColor} 0%, transparent 70%)` }} />
+
+            <Rise className="text-center mb-20 relative z-10">
+                <Label>Physicality</Label>
+                <h2 className="text-4xl md:text-5xl font-black tracking-tighter mt-4 italic uppercase" style={{ color: T.text }}>
+                    The 2026 Artifact
+                </h2>
+                <p className="text-[10px] font-mono tracking-[0.2em] mt-4 opacity-30 uppercase">
+                    Model: Vesper-v1.0 // Auth: Approved
+                </p>
             </Rise>
 
-            <Rise delay={0.15}>
+            <Rise delay={0.2}>
                 <motion.div
                     ref={ref}
                     onMouseMove={e => {
@@ -405,80 +450,131 @@ function AuraCard({ identity, stats }: { identity: typeof AURA_DATA.identity; st
                         my.set((e.clientY - r.top) / r.height - 0.5);
                     }}
                     onMouseLeave={() => { mx.set(0); my.set(0); }}
-                    style={{ rotateX: rX, rotateY: rY, transformStyle: "preserve-3d", perspective: 1200 }}
-                    className="relative cursor-pointer group"
-                    animate={{ y: [0, -10, 0] }}
-                    transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                    style={{ rotateX: rX, rotateY: rY, transformStyle: "preserve-3d", perspective: 1500 }}
+                    className="relative cursor-none group"
                 >
-                    {/* Card face */}
-                    <div className="w-[320px] sm:w-[360px] aspect-[3/4.2] rounded-[28px] overflow-hidden relative"
+                    {/* Card Container */}
+                    <div className="w-[310px] sm:w-[380px] aspect-[1/1.42] rounded-[32px] overflow-hidden relative border border-white/10"
                         style={{
-                            background: T.card,
-                            boxShadow: "0 60px 120px -20px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(255,255,255,0.06)",
-                            transform: "translateZ(20px)"
+                            background: "#0d0d0f",
+                            boxShadow: "0 100px 150px -50px rgba(0,0,0,1)",
+                            transform: "translateZ(0px)"
                         }}
                     >
-                        {/* Noise */}
-                        <div className="absolute inset-0 opacity-[0.12] mix-blend-overlay pointer-events-none"
-                            style={{ backgroundImage: T.noiseUrl }}
-                        />
-                        {/* Interactive glare */}
+                        {/* 1. Internal Light Leaks (Genre Driven) */}
+                        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                            {genres?.slice(0, 2).map((g, i) => (
+                                <motion.div key={g.name}
+                                    animate={{
+                                        x: [0, 40, -40, 0],
+                                        y: [0, -30, 30, 0],
+                                        scale: [1, 1.2, 0.9, 1],
+                                        opacity: [0.15, 0.25, 0.15]
+                                    }}
+                                    transition={{ duration: 15 + i * 5, repeat: Infinity, ease: "linear" }}
+                                    className="absolute w-full h-full blur-[80px]"
+                                    style={{
+                                        background: getGenreColor(g.name, 0.6),
+                                        left: i === 0 ? '-30%' : '30%',
+                                        top: i === 0 ? '-20%' : '40%'
+                                    }}
+                                />
+                            ))}
+                        </div>
+
+                        {/* 2. Technical Blueprint Grid */}
+                        <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                            style={{ backgroundImage: `radial-gradient(circle, white 1px, transparent 1px)`, backgroundSize: '24px 24px' }} />
+
+                        {/* 3. Noise & Screen Texture */}
+                        <div className="absolute inset-0 opacity-[0.08] mix-blend-overlay pointer-events-none"
+                            style={{ backgroundImage: T.noiseUrl }} />
+
+                        {/* 4. Iridescent Holographic Glare */}
                         <motion.div
-                            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none mix-blend-soft-light"
-                            style={{ background: useMotionTemplate`radial-gradient(circle at ${gX} ${gY}, rgba(255,255,255,0.28) 0%, transparent 55%)` }}
+                            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none mix-blend-color-dodge"
+                            style={{ background: useMotionTemplate`radial-gradient(circle at ${glareX} ${glareY}, hsla(${Math.abs(Math.random() * 360)}, 100%, 70%, 0.3) 0%, transparent 60%)` }}
                         />
 
-                        {/* Card body */}
-                        <div className="p-8 h-full flex flex-col justify-between">
-                            {/* Header row */}
+                        {/* ────── CONTENT ────── */}
+                        <div className="relative h-full p-10 flex flex-col justify-between z-20">
+                            {/* TOP BAR */}
                             <div className="flex justify-between items-start">
-                                <span className="text-sm font-semibold" style={{ color: T.text }}>Vesper OS</span>
-                                <div className="w-7 h-7 rounded-full flex items-center justify-center"
-                                    style={{ background: T.dim }}>
-                                    <Disc3 className="w-3.5 h-3.5" style={{ color: T.sub }} />
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-[#3affaa] shadow-[0_0_10px_#3affaa] animate-pulse" />
+                                        <span className="text-[9px] font-mono tracking-widest text-[#3affaa] uppercase">Live Channel</span>
+                                    </div>
+                                    <span className="block text-[10px] font-mono opacity-30 mt-1 uppercase tracking-tighter">Serial: VES-0026-{new Date().getFullYear()}</span>
+                                </div>
+                                <div className="p-2.5 rounded-xl border border-white/5 bg-white/5 backdrop-blur-sm">
+                                    <Disc3 className="w-4 h-4 opacity-40 animate-spin-slow" />
                                 </div>
                             </div>
 
-                            {/* Identity block */}
-                            <div className="space-y-7">
-                                <div>
-                                    <p className="text-[9px] font-mono uppercase tracking-widest mb-2" style={{ color: T.sub }}>Class</p>
-                                    <h3 className="text-4xl md:text-5xl font-black tracking-[-0.04em] leading-[0.85]" style={{ color: T.text }}>
-                                        {identity.name.split(" ").map((w, i) => <span key={i} className="block">{w}</span>)}
+                            {/* CENTER BLOCK */}
+                            <motion.div style={{ x: tX, y: tY }} className="transition-transform duration-100 ease-out">
+                                <div className="mb-4">
+                                    <Label className="text-[8px] opacity-40 tracking-[0.3em]">Sonic Class</Label>
+                                    <h3 className="text-5xl font-black italic tracking-[-0.05em] leading-[0.82] uppercase mt-2 mix-blend-difference"
+                                        style={{ color: T.text, filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.15))' }}>
+                                        {identity.name.split(" ").map((w: string, i: number) => (
+                                            <span key={i} className="block">{w === "Architect" ? <span className="opacity-40">{w}</span> : w}</span>
+                                        ))}
                                     </h3>
                                 </div>
+                                <div className="w-12 h-0.5 bg-white/10" />
+                            </motion.div>
 
-                                {/* Stat mini-grid */}
-                                <div className="grid grid-cols-2 gap-4 pt-5"
-                                    style={{ borderTop: `1px solid ${T.border}` }}>
-                                    {stats.slice(0, 4).map(s => (
-                                        <div key={s.id}>
-                                            <p className="text-[9px] font-mono uppercase tracking-widest mb-1" style={{ color: T.sub }}>
-                                                {s.label}
-                                            </p>
-                                            <p className="text-sm font-mono font-semibold" style={{ color: T.text }}>
-                                                {s.value.toLocaleString()} {s.unit}
-                                            </p>
+                            {/* STATS CONTROL PANEL */}
+                            <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+                                {stats.slice(0, 4).map((s: any) => (
+                                    <div key={s.id} className="group/stat">
+                                        <div className="flex items-center gap-2 mb-1.5">
+                                            <div className="w-1 h-1 rounded-full bg-white/20" />
+                                            <p className="text-[8px] font-mono uppercase tracking-widest opacity-30">{s.label}</p>
                                         </div>
-                                    ))}
-                                </div>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-lg font-mono font-bold tracking-tighter tabular-nums" style={{ color: T.text }}>
+                                                {s.value.toLocaleString()}
+                                            </span>
+                                            <span className="text-[8px] font-mono opacity-20 uppercase">{s.unit || "px"}</span>
+                                        </div>
+                                        <div className="w-full h-[1px] bg-white/[0.03] mt-2 group-hover/stat:bg-white/10 transition-colors" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* BOTTOM DECOR */}
+                        <div className="absolute bottom-4 left-10 right-10 flex justify-between items-center opacity-20 pointer-events-none">
+                            <span className="text-[7px] font-mono uppercase tracking-[0.4em]">Proprietary Engine</span>
+                            <div className="flex gap-1">
+                                {[1, 2, 3, 4].map(i => <div key={i} className="w-0.5 h-0.5 rounded-full bg-white" />)}
                             </div>
                         </div>
                     </div>
 
-                    {/* Floating CTA */}
+                    {/* INTERACTIVE CUSTOM CURSOR (Inside Card Area) */}
                     <motion.div
-                        animate={{ opacity: 0, y: 0 }}
-                        whileHover={{ opacity: 1, y: -8 }}
-                        transition={{ duration: 0.3 }}
-                        className="absolute -bottom-4 left-1/2 -translate-x-1/2 pointer-events-none group-hover:pointer-events-auto"
-                        style={{ transform: "translateZ(60px)" }}
+                        className="absolute inset-0 z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ x: mx, y: my }}
                     >
-                        <div className="px-6 py-3 rounded-full font-semibold text-sm flex items-center gap-2 whitespace-nowrap"
-                            style={{ background: T.text, color: T.bg, boxShadow: "0 10px 30px rgba(255,255,255,0.12)" }}
-                        >
-                            <Share2 className="w-4 h-4" /> Share Label
-                        </div>
+                        <div className="absolute w-8 h-8 -translate-x-1/2 -translate-y-1/2 border border-white/20 rounded-full" />
+                        <div className="absolute w-[1px] h-4 -translate-x-1/2 -translate-y-1/2 bg-white/40 left-1/2" />
+                        <div className="absolute h-[1px] w-4 -translate-x-1/2 -translate-y-1/2 bg-white/40 top-1/2" />
+                    </motion.div>
+
+                    {/* SHARE CTA */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        whileHover={{ opacity: 1, y: 0 }}
+                        className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-max"
+                        style={{ transform: "translateZ(80px)" }}
+                    >
+                        <button className="px-8 py-3 rounded-full bg-white text-black text-[10px] font-black uppercase tracking-widest hover:scale-110 active:scale-95 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
+                            Export Artifact
+                        </button>
                     </motion.div>
                 </motion.div>
             </Rise>
@@ -489,44 +585,136 @@ function AuraCard({ identity, stats }: { identity: typeof AURA_DATA.identity; st
 // ══════════════════════════════════════════════════════════════════
 //  PAGE ROOT
 // ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════
+//  PAGE ROOT
+// ══════════════════════════════════════════════════════════════════
 export default function AuraPage() {
-    const [ready, setReady] = useState(false);
-    useEffect(() => { const id = setTimeout(() => setReady(true), 1400); return () => clearTimeout(id); }, []);
+    const [data, setData] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const res = await fetch("/api/stats/summary");
+                const stats = await res.json();
+                if (stats.error) {
+                    setIsLoading(false);
+                    return;
+                }
+                setData(stats);
+            } catch (e) {
+                console.error("Failed to load stats", e);
+            } finally {
+                setTimeout(() => setIsLoading(false), 1500);
+            }
+        };
+        fetchStats();
+    }, []);
+
+    if (isLoading) {
+        return (
+            <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#09090b]">
+                <motion.span className="w-12 h-12 rounded-full block"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1.1, repeat: Infinity, ease: "linear" }}
+                    style={{ border: `1.5px solid rgba(255,255,255,0.12)`, borderTopColor: "rgba(255,255,255,0.45)" }}
+                />
+                <p className="mt-6 text-[10px] font-mono uppercase tracking-[0.28em] animate-pulse text-white/40">Compiling your vesper…</p>
+            </div>
+        );
+    }
+
+    const hasData = !!(data?.stats && data.stats.totalPlays > 0);
+
+    // Adaptive time calculation
+    const totalSec = data?.stats?.totalSeconds || 0;
+    const timeVal = totalSec < 3600 ? Math.round(totalSec / 60) : Number((totalSec / 3600).toFixed(1));
+    const timeUnit = totalSec < 3600 ? "min" : "hrs";
+
+    const displayStats = hasData ? [
+        {
+            id: "time",
+            label: "Total Time",
+            value: timeVal,
+            unit: timeUnit,
+            sub: "of active listening"
+        },
+        {
+            id: "plays",
+            label: "Total Plays",
+            value: data.stats.totalPlays || 0,
+            unit: "",
+            sub: data.stats.totalPlays === 1 ? "honest track completion" : "honest track completions"
+        },
+        {
+            id: "tracks",
+            label: "Unique Tracks",
+            value: data.stats.uniqueTracks || 0,
+            unit: "",
+            sub: data.stats.uniqueTracks === 1 ? "distinct soundscape" : "distinct soundscapes"
+        },
+        {
+            id: "streak",
+            label: "Active Days",
+            value: data.stats.activeDays || 0,
+            unit: "d",
+            sub: "out of the last 30"
+        },
+    ] : AURA_DATA.stats;
+
+    const displayTracks = hasData ? data.topTracks : AURA_DATA.tracks;
+
+    const identity = {
+        ...AURA_DATA.identity,
+        name: hasData ? (data?.topArtists?.[0]?.name || "Sonic Architect") : AURA_DATA.identity.name,
+        description: hasData
+            ? `Built from your collective resonance and honest listening sessions.`
+            : `Your sonic journey is just beginning. Start resonance to build your Vesper.`,
+        lastResonated: data?.stats?.lastResonated || null
+    };
+
+    const dnaData = data?.topGenres?.map((g: any) => ({
+        name: g.name,
+        pct: Math.round((g.count / data.stats.totalPlays) * 100)
+    })) || AURA_DATA.genres;
 
     return (
-        <main className="w-full min-h-screen font-sans overflow-x-hidden" style={{ background: T.bg, color: T.text }}>
-            {/* Global grain */}
+        <main className="w-full min-h-screen font-sans overflow-x-hidden pb-40" style={{ background: T.bg, color: T.text }}>
             <div className="fixed inset-0 z-[200] pointer-events-none opacity-[0.018] mix-blend-overlay"
                 style={{ backgroundImage: T.noiseUrl }}
             />
 
-            {/* Loader */}
-            <AnimatePresence mode="wait">
-                {!ready && (
-                    <motion.div key="loader"
-                        exit={{ opacity: 0, filter: "blur(10px)" }}
-                        transition={{ duration: 0.7, ease }}
-                        className="fixed inset-0 z-50 flex flex-col items-center justify-center"
-                        style={{ background: T.bg }}
-                    >
-                        <motion.span className="w-12 h-12 rounded-full block"
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1.1, repeat: Infinity, ease: "linear" }}
-                            style={{ border: `1.5px solid ${T.dim}`, borderTopColor: T.sub }}
-                        />
-                        <p className="mt-6 text-[10px] font-mono uppercase tracking-[0.28em] animate-pulse"
-                            style={{ color: T.sub }}>Compiling your vesper…</p>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <Hero d={identity} dna={dnaData} />
 
-            {/* Content */}
-            <div className={ready ? "" : "h-screen overflow-hidden"}>
-                <Hero d={AURA_DATA.identity} />
-                <Stats data={AURA_DATA.stats} />
-                <GenreDNA genres={AURA_DATA.genres} />
-                <TrackList tracks={AURA_DATA.tracks} />
-                <AuraCard identity={AURA_DATA.identity} stats={AURA_DATA.stats} />
+            {!hasData && (
+                <section className="px-5 md:px-12 py-20 flex flex-col items-center text-center relative z-20">
+                    <div className="max-w-2xl px-8 py-12 rounded-[32px] border border-white/5 bg-white/[0.02] backdrop-blur-md">
+                        <Label>Initialisation</Label>
+                        <h2 className="text-3xl font-black mt-6 mb-4 italic uppercase tracking-tighter">Awaiting Signal...</h2>
+                        <p className="text-white/40 text-sm leading-relaxed mb-8">
+                            Vesper uses <span className="text-white/80 font-bold">Honest Listening</span> logic.
+                            Your statistics only count when you truly connect with a track—meaning no skips, no noise, just pure playback.
+                            Finish a few songs to see your Sonic Fingerprint here.
+                        </p>
+                        <button
+                            onClick={() => window.location.href = '/discover'}
+                            className="px-8 py-4 bg-white text-black rounded-full font-black uppercase tracking-widest text-[11px] hover:scale-105 active:scale-95 transition-all shadow-2xl"
+                        >
+                            Begin Exploration
+                        </button>
+                    </div>
+                </section>
+            )}
+
+            <div className={hasData ? "opacity-100" : "opacity-20 grayscale pointer-events-none transition-all duration-1000"}>
+                <Stats data={displayStats} />
+
+                {data?.topGenres && data.topGenres.length > 0 && (
+                    <GenreDNA genres={dnaData} />
+                )}
+
+                <TrackList tracks={displayTracks} />
+                <AuraCard identity={identity} stats={displayStats} genres={dnaData} />
             </div>
         </main>
     );

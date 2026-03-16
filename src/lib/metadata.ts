@@ -68,9 +68,14 @@ export async function getITunesCoverArt(title: string, artist: string): Promise<
         const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=1`;
 
         try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // Relax to 8s
+
             const response = await fetch(url, {
-                next: { revalidate: 86400 } // Cache for 24 hours
+                next: { revalidate: 86400 }, // Cache for 24 hours
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
 
             if (!response.ok) continue;
 
@@ -80,8 +85,13 @@ export async function getITunesCoverArt(title: string, artist: string): Promise<
                 // artworkUrl100 -> 600x600bb for high-res
                 return data.results[0].artworkUrl100.replace("100x100bb", "600x600bb");
             }
-        } catch (error) {
-            console.error("iTunes API error:", error);
+        } catch (error: any) {
+            // Silently fail for timeouts/aborts so we don't crash SSR/Next.js
+            if (error.name === 'AbortError') {
+                console.warn(`[iTunesArt] Request timed out for: ${query}`);
+            } else {
+                console.error("iTunes API error:", error);
+            }
         }
     }
 

@@ -7,6 +7,7 @@ import { motion, useMotionValue, useMotionTemplate } from "framer-motion";
 import { Home, Compass, Library, Disc, Sparkles, LogIn, LogOut, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useLibraryStore } from "@/store/useLibraryStore";
 
 const NAV_LINKS = [
     { name: "Home", href: "/", icon: Home },
@@ -21,9 +22,15 @@ export const Sidebar = () => {
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
     const { user, logout, hydrate, loading } = useAuthStore();
+    const { sync } = useLibraryStore();
 
     // Hydrate auth state on mount
     useEffect(() => { hydrate(); }, [hydrate]);
+
+    // Sync library when user is detected
+    useEffect(() => {
+        if (user) sync();
+    }, [user, sync]);
 
     // Magnetic Spotlight Logic
     const sidebarRef = useRef<HTMLDivElement>(null);
@@ -38,6 +45,7 @@ export const Sidebar = () => {
 
     const handleLogout = async () => {
         await logout();
+        useLibraryStore.getState().clearLocal();
         router.push("/login");
     };
 

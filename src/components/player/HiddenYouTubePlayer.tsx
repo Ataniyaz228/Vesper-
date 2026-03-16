@@ -13,7 +13,8 @@ export const HiddenYouTubePlayer = () => {
         setDuration,
         nextTrack,
         seekTarget,
-        clearSeekTarget
+        clearSeekTarget,
+        setIsLoading
     } = usePlayerStore();
 
     const [player, setPlayer] = useState<YouTubePlayer | null>(null);
@@ -69,6 +70,7 @@ export const HiddenYouTubePlayer = () => {
 
     const onReady: YouTubeProps['onReady'] = (event) => {
         setPlayer(event.target);
+        setIsLoading(false);
         try {
             event.target.setVolume(volume * 100);
             if (isPlaying) event.target.playVideo();
@@ -77,9 +79,14 @@ export const HiddenYouTubePlayer = () => {
 
     const onStateChange: YouTubeProps['onStateChange'] = (event) => {
         try {
+            // 1 = playing, -1 = unstarted, 3 = buffering, 5 = cued
             if (event.data === 1) {
+                setIsLoading(false);
                 setDuration(event.target.getDuration());
+            } else if (event.data === 3) {
+                setIsLoading(true);
             }
+
             if (event.data === 0) {
                 nextTrack();
             }

@@ -56,6 +56,41 @@ async function migrate() {
         created_at    TIMESTAMPTZ DEFAULT NOW(),
         updated_at    TIMESTAMPTZ DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS liked_tracks(
+        id               SERIAL PRIMARY KEY,
+        user_id          INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        track_id         TEXT NOT NULL,
+        title            TEXT NOT NULL,
+        artist           TEXT NOT NULL,
+        album_image_url  TEXT,
+        duration_ms      INTEGER DEFAULT 0,
+        created_at       TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(user_id, track_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS saved_playlists(
+        id            SERIAL PRIMARY KEY,
+        user_id       INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        playlist_id   TEXT NOT NULL,
+        title         TEXT NOT NULL,
+        description   TEXT,
+        image_url     TEXT,
+        created_at    TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(user_id, playlist_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS listening_history(
+        id               SERIAL PRIMARY KEY,
+        user_id          INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        track_id         TEXT NOT NULL,
+        title            TEXT NOT NULL,
+        artist           TEXT NOT NULL,
+        album_image_url  TEXT,
+        duration_ms      INTEGER,
+        genre            TEXT DEFAULT 'Unknown',
+        listened_at      TIMESTAMPTZ DEFAULT NOW()
+      );
     `);
 
     // Auto-update updated_at on row change
@@ -76,7 +111,7 @@ async function migrate() {
         FOR EACH ROW EXECUTE FUNCTION update_updated_at();
     `);
 
-    console.log("[migrate] ✓ users table ready");
+    console.log("[migrate] ✓ Schema updated: users, liked_tracks, saved_playlists");
   } finally {
     await pool.end();
   }

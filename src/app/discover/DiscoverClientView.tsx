@@ -1,9 +1,12 @@
 "use client";
 
-import React, { useState, useRef } from "react";
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { Play, PlayCircle, Plus, Info, ArrowRight, Activity } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence, useSpring, useMotionValue, useTransform } from "framer-motion";
+import { Play, Plus, ArrowRight, Disc } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { usePlayerStore } from "@/store/usePlayerStore";
+import { useLibraryStore } from "@/store/useLibraryStore";
+import { AuraTrackImage } from "@/components/ui/AuraTrackImage";
 import { Track } from "@/lib/youtube";
 
 interface DiscoverTrack extends Track {
@@ -22,250 +25,356 @@ function cleanTitle(raw: string) {
         .trim() || raw.slice(0, 48);
 }
 
-// ── 3D Album Card (Interactive) ─────────────────────────────────────────────
-function InteractiveAlbumCard({ track, isPlaying }: { track: DiscoverTrack; isPlaying: boolean }) {
-    const ref = useRef<HTMLDivElement>(null);
-    const mx = useMotionValue(0);
-    const my = useMotionValue(0);
-    const sx = useSpring(mx, { stiffness: 130, damping: 22 });
-    const sy = useSpring(my, { stiffness: 130, damping: 22 });
-    const rotX = useTransform(sy, [-0.5, 0.5], ["15deg", "-15deg"]);
-    const rotY = useTransform(sx, [-0.5, 0.5], ["-15deg", "15deg"]);
-
-    // Light reflection based on mouse
-    const lightX = useTransform(sx, [-0.5, 0.5], ["100%", "0%"]);
-    const lightY = useTransform(sy, [-0.5, 0.5], ["100%", "0%"]);
-
-    // Vinyl record that slides out
-    const vinylX = useSpring(isPlaying ? 80 : 0, { stiffness: 200, damping: 20 });
-
-    const move = (e: React.MouseEvent) => {
-        if (!ref.current) return;
-        const r = ref.current.getBoundingClientRect();
-        mx.set((e.clientX - r.left) / r.width - 0.5);
-        my.set((e.clientY - r.top) / r.height - 0.5);
-    };
-
+// ── COMPONENT: CLUSTER CARD ──────────────────────────────────────────────────
+function ClusterCard({ title, desc, img, onClick }: { title: string, desc: string, img: string, onClick: (e: React.MouseEvent) => void }) {
     return (
         <motion.div
-            ref={ref} onMouseMove={move} onMouseLeave={() => { mx.set(0); my.set(0); }}
-            className="relative perspective-[1500px] cursor-pointer group"
-            style={{ width: "clamp(240px, 30vw, 400px)", aspectRatio: "1 / 1" }}
+            onClick={onClick}
+            whileHover={{ y: -12, scale: 1.05 }}
+            className="relative w-[300px] h-[450px] flex-shrink-0 rounded-[40px] overflow-hidden group cursor-pointer border border-white/10 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)] bg-[#0a0a0c]"
         >
-            <motion.div
-                style={{ rotateX: rotX, rotateY: rotY, transformStyle: "preserve-3d" }}
-                className="w-full h-full relative"
-            >
-                {/* ── The Vinyl Record ── */}
-                <motion.div
-                    style={{ x: vinylX, z: -10 }}
-                    className="absolute inset-0 rounded-full flex items-center justify-center overflow-hidden shadow-2xl pointer-events-none"
-                    animate={{ rotate: isPlaying ? 360 : 0 }}
-                    transition={{ duration: 4, ease: "linear", repeat: isPlaying ? Infinity : 0 }}
-                >
-                    {/* Vinyl grooves */}
-                    <div className="absolute inset-0" style={{ background: "radial-gradient(circle, #2a2a2a 0%, #0e0e0e 100%)" }}>
-                        {[...Array(6)].map((_, i) => (
-                            <div key={i} className="absolute inset-0 rounded-full border border-white/[0.04]" style={{ margin: `${15 + i * 5}%` }} />
-                        ))}
-                    </div>
-                    {/* Vinyl highlight */}
-                    <div className="absolute inset-0 rounded-full opacity-[0.1]" style={{ background: "conic-gradient(from 45deg, #f60, #ff0, #0f9, #08f, #a0f, #f60)" }} />
-                    {/* Inner label */}
-                    <img src={track.albumImageUrl} className="w-[30%] h-[30%] rounded-full object-cover relative z-10 animate-spin-slow" />
-                    <div className="absolute w-3 h-3 rounded-full bg-[#0d0d0d] z-20" />
-                </motion.div>
+            <div className="absolute inset-0 z-0">
+                <img
+                    src={img}
+                    alt={title}
+                    className="absolute inset-0 w-full h-full object-cover grayscale brightness-[0.35] group-hover:grayscale-0 group-hover:brightness-90 transition-all duration-[1.5s] scale-110 group-hover:scale-100 ease-out"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent opacity-80 group-hover:opacity-40 transition-opacity duration-1000" />
+                <div className="absolute inset-0 opacity-[0.04] mix-blend-overlay pointer-events-none" style={{ backgroundImage: NOISE }} />
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 bg-gradient-to-tr from-white/5 via-transparent to-transparent" />
+            </div>
 
-                {/* ── Glowing shadow ── */}
-                <div className="absolute -inset-4 rounded-xl -z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
-                    style={{ background: `radial-gradient(circle at center, ${track.color1}80 0%, transparent 60%)`, filter: "blur(24px)" }} />
-
-                {/* ── Album Cover ── */}
-                <div className="w-full h-full relative z-10 rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10" style={{ transform: "translateZ(30px)" }}>
-                    <AnimatePresence mode="wait">
-                        <motion.img
-                            key={track.id} src={track.albumImageUrl}
-                            initial={{ opacity: 0, scale: 1.1 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
-                            transition={{ duration: 0.6 }}
-                            className="w-full h-full object-cover"
-                        />
-                    </AnimatePresence>
-                    {/* Interactive reflection */}
-                    <motion.div className="absolute inset-0 pointer-events-none mix-blend-overlay opacity-50 block"
-                        style={{ background: `radial-gradient(circle at ${lightX} ${lightY}, rgba(255,255,255,0.8) 0%, transparent 60%)` }} />
+            <div className="absolute bottom-10 left-10 right-10 z-10">
+                <div className="mb-4 overflow-hidden">
+                    <motion.h4 initial={{ y: "100%" }} whileInView={{ y: 0 }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} className="text-4xl font-black italic uppercase tracking-tighter mb-1 text-white leading-none">
+                        {title}
+                    </motion.h4>
                 </div>
-            </motion.div>
+                <div className="flex items-center gap-3">
+                    <div className="h-[1px] w-8 bg-white/20 group-hover:w-12 transition-all duration-700" />
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 group-hover:text-white transition-colors">{desc}</p>
+                </div>
+            </div>
+
+            <div className="absolute top-10 right-10 w-12 h-12 rounded-full border border-white/10 flex items-center justify-center bg-black/20 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all -translate-x-6 group-hover:translate-x-0 shadow-2xl">
+                <ArrowRight className="w-5 h-5 text-white" />
+            </div>
+
+            <div className="absolute top-8 left-10">
+                <div className="text-[8px] font-mono text-white/20 uppercase tracking-[0.6em] group-hover:text-white/40 transition-colors">Nodes_0{Math.floor(Math.random() * 9)}</div>
+            </div>
         </motion.div>
     );
 }
 
-// ── Main View ───────────────────────────────────────────────────────────────
-export function DiscoverClientView({ initialTracks }: { initialTracks: DiscoverTrack[] }) {
-    const [idx, setIdx] = useState(0);
-    const track = initialTracks[idx];
-    const { playTrack, currentTrack, isPlaying } = usePlayerStore();
+const GENRES = [
+    {
+        title: "Phonk",
+        desc: "Neural_Aesthetic",
+        img: "https://i.pinimg.com/736x/c7/45/91/c74591db49cba025f28078684f532d00.jpg",
+        q: "phonk"
+    },
+    {
+        title: "Lo-Fi",
+        desc: "Ghost_City",
+        img: "https://i.pinimg.com/originals/70/eb/85/70eb85d8352f580605b65ca2854f6cc1.jpg",
+        q: "lofi"
+    },
+    {
+        title: "Jazz",
+        desc: "Smoke_Logic",
+        img: "https://i.pinimg.com/originals/8c/4d/94/8c4d94d46ef70e76cc03e380c3ae8f6b.jpg",
+        q: "jazz"
+    },
+    {
+        title: "Techno",
+        desc: "Bento_Pulse",
+        img: "https://i.pinimg.com/736x/68/cd/a6/68cda6ec352dde4918d525afc4baccc3.jpg",
+        q: "techno"
+    },
+    {
+        title: "Ambient",
+        desc: "Horizon_Aesthetic",
+        img: "https://i.pinimg.com/736x/aa/15/67/aa15679bb077c9851f7559986162ef68.jpg",
+        q: "ambient"
+    },
+    {
+        title: "Vocal",
+        desc: "Signal_Aesthetic",
+        img: "https://i.pinimg.com/736x/0d/88/d6/0d88d616e3ae3424ceec54f3d22d6df0.jpg",
+        q: "vocal"
+    },
+    {
+        title: "Classical",
+        desc: "Deep_Heritage",
+        img: "https://i.pinimg.com/originals/49/eb/23/49eb23aaf2366a8024192e0106f54406.jpg",
+        q: "classical"
+    },
+    {
+        title: "Electronic",
+        desc: "Liquid_Aesthetic",
+        img: "https://i.pinimg.com/736x/bf/fa/f9/bffaf9ae8e3ad8e1518af24ee7026501.jpg",
+        q: "electronic"
+    },
+];
 
-    if (!initialTracks.length) return <div className="absolute inset-0 flex items-center justify-center text-white/50 text-sm">No tracks found</div>;
+function wrap(min: number, max: number, v: number) {
+    const rangeSize = max - min;
+    return ((((v - min) % rangeSize) + rangeSize) % rangeSize) + min;
+}
 
-    const navigate = (dir: number) => {
-        setIdx((prev) => (prev + dir + initialTracks.length) % initialTracks.length);
+// ── FREQUENCY NODES: TRULY SEAMLESS INFINITE LOOP ───────────────────────────
+function FrequencyNodes({ onNavigate }: { onNavigate: (e: React.MouseEvent, q: string) => void }) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
+    const items = [...GENRES, ...GENRES, ...GENRES];
+
+    const rawX = useMotionValue(0);
+    const smoothX = useSpring(rawX, { stiffness: 45, damping: 25, mass: 1 });
+    const [setWidth, setSetWidth] = useState(0);
+
+    useEffect(() => {
+        const update = () => {
+            if (contentRef.current) {
+                const total = contentRef.current.scrollWidth;
+                const sw = total / 3;
+                setSetWidth(sw);
+                rawX.set(-sw);
+            }
+        };
+        update();
+        window.addEventListener("resize", update);
+        return () => window.removeEventListener("resize", update);
+    }, []);
+
+    const renderX = useTransform(smoothX, (v) => {
+        if (setWidth === 0) return v;
+        return wrap(-setWidth * 2, -setWidth, v);
+    });
+
+    const handleWheel = (e: WheelEvent) => {
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+            e.preventDefault();
+            rawX.set(rawX.get() - e.deltaY * 1.2);
+        }
     };
 
-    const isCurrentTrack = currentTrack?.id === track?.id && isPlaying;
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        el.addEventListener("wheel", handleWheel, { passive: false });
+        return () => el.removeEventListener("wheel", handleWheel);
+    }, [setWidth]);
 
     return (
-        <div className="relative w-full min-h-[calc(100vh-2rem)] rounded-[32px] overflow-hidden bg-[#050505] text-white flex flex-col font-sans">
-
-            {/* ── Abstract Background Canvas ── */}
-            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                <AnimatePresence mode="wait">
-                    <motion.div key={track.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 1.5 }} className="w-full h-full">
-                        {/* Giant blurred background image */}
-                        <img src={track.albumImageUrl} className="absolute w-[150%] h-[150%] -top-[25%] -left-[25%] object-cover blur-[100px] saturate-200 opacity-20 transform -rotate-12" />
-
-                        {/* Procedural color gradients based on track data */}
-                        <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 80% 20%, ${track.color2}40 0%, transparent 50%)` }} />
-                        <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 20% 80%, ${track.color1}40 0%, transparent 50%)` }} />
-
-                        {/* Film grain and dark vignetting */}
-                        <div className="absolute inset-0 opacity-[0.08] mix-blend-overlay" style={{ backgroundImage: NOISE }} />
-                        <div className="absolute inset-0 shadow-[inset_0_0_200px_rgba(0,0,0,1)]" />
-                    </motion.div>
-                </AnimatePresence>
+        <div className="relative pt-32 pb-64 border-t border-white/5 overflow-hidden">
+            <div className="px-6 lg:px-[10vw] mb-20 text-center md:text-left">
+                <motion.p initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} className="text-[11px] font-black tracking-[1em] text-white/10 uppercase mb-6">
+                    Continuity Protocol
+                </motion.p>
+                <div className="overflow-hidden">
+                    <motion.h3
+                        initial={{ y: "100%" }}
+                        whileInView={{ y: 0 }}
+                        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+                        className="text-6xl lg:text-9xl font-black italic uppercase tracking-tighter leading-none"
+                    >
+                        Freq<span className="text-transparent" style={{ WebkitTextStroke: "1px rgba(255,255,255,0.1)" }}>uenc</span>y
+                    </motion.h3>
+                </div>
             </div>
 
-            {/* ── Top Header Bar ── */}
-            <header className="relative z-20 flex justify-between items-center px-12 pt-10 flex-shrink-0">
-                <div className="flex items-center gap-4">
-                    <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                    <span className="text-[10px] uppercase tracking-[0.4em] font-bold text-white/60">Vesper Engine</span>
-                </div>
+            <div ref={containerRef} className="overflow-hidden w-full px-8 cursor-grab active:cursor-grabbing">
+                <motion.div
+                    ref={contentRef}
+                    drag="x"
+                    onDrag={(e, info) => {
+                        rawX.set(rawX.get() + info.delta.x);
+                    }}
+                    style={{ x: renderX }}
+                    className="flex gap-14 w-max pb-10 px-[10vw]"
+                >
+                    {items.map((g, i) => (
+                        <ClusterCard key={i} title={g.title} desc={g.desc} img={g.img} onClick={(e) => onNavigate(e, g.q)} />
+                    ))}
+                </motion.div>
+            </div>
+        </div>
+    );
+}
 
-                <div className="flex bg-white/5 border border-white/10 rounded-full p-1 backdrop-blur-md">
-                    <button className="px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest bg-white text-black">Curated</button>
-                    <button className="px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest text-white/50 hover:text-white transition-colors">Trending</button>
-                    <button className="px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest text-white/50 hover:text-white transition-colors">New</button>
-                </div>
-            </header>
+// ── EXHIBITION MODULE ───────────────────────────────────────────────────────
+function ExhibitionTrack({ track, index, allTracks }: { track: DiscoverTrack, index: number, allTracks: Track[] }) {
+    const { playTrack, currentTrack, isPlaying } = usePlayerStore();
+    const { toggleLikeTrack, isTrackLiked } = useLibraryStore();
+    const isActive = currentTrack?.id === track.id && isPlaying;
+    const isSaved = isTrackLiked(track.id);
 
-            {/* ── Main Stage Area ── */}
-            <main className="relative z-10 flex-1 w-full max-w-[1800px] mx-auto px-6 md:px-12 py-8 md:py-0 flex flex-col lg:grid lg:grid-cols-2 items-center gap-12 lg:gap-24">
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 100 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+            className={`relative w-full flex flex-col ${index % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"} gap-12 md:gap-24 mb-64 items-center`}
+        >
+            <div className="absolute -top-32 left-1/2 -translate-x-1/2 text-[30vw] font-black text-white/[0.015] select-none pointer-events-none uppercase italic leading-none z-0">
+                {track.title.charAt(0)}
+            </div>
 
-                {/* Visual Left Side (The Album Card) */}
-                <div className="w-full flex justify-center lg:justify-end">
-                    <div onClick={() => playTrack(track, initialTracks)} className="relative group">
-                        <InteractiveAlbumCard track={track} isPlaying={isCurrentTrack} />
-
-                        {/* Hover Play Overlay */}
-                        <div className="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                            <div className="w-24 h-24 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-2xl scale-90 group-hover:scale-100 transition-transform">
-                                <Play className="w-10 h-10 fill-white text-white ml-2" />
-                            </div>
+            <div className="relative z-10 w-full md:w-1/2">
+                <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ duration: 0.8 }}
+                    className="relative group aspect-square rounded-[40px] overflow-hidden bg-[#0a0a0c] border border-white/10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)]"
+                >
+                    <AuraTrackImage
+                        trackId={track.id}
+                        fallbackUrl={track.albumImageUrl}
+                        className="w-full h-full object-cover saturate-[1.1] transition-transform duration-1000 group-hover:scale-110"
+                        alt={track.title}
+                    />
+                    <div
+                        onClick={() => playTrack(track, allTracks)}
+                        className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-500 cursor-pointer"
+                    >
+                        <div className="w-24 h-24 rounded-full bg-white text-black flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 transition-transform duration-500">
+                            <Play className="w-8 h-8 fill-current ml-1" />
                         </div>
                     </div>
-                </div>
+                </motion.div>
+            </div>
 
-                {/* Typography Right Side */}
-                <div className="w-full max-w-xl flex flex-col justify-center">
-                    <AnimatePresence mode="popLayout">
-                        <motion.div
-                            key={track.id}
-                            initial={{ opacity: 0, x: 40 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -40 }}
-                            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                            className="flex flex-col"
-                        >
-                            {/* Eyebrow & Status */}
-                            <div className="flex items-center justify-between mb-6">
-                                <span className="text-[11px] font-bold text-white/40 tracking-[0.3em] uppercase flex items-center gap-2">
-                                    {isCurrentTrack ? <Activity className="w-4 h-4 text-green-400" /> : <Info className="w-4 h-4" />}
-                                    {isCurrentTrack ? "Now Playing" : "Featured Discovery"}
-                                </span>
-                            </div>
-
-                            {/* Massive Title */}
-                            <h1 className="text-4xl md:text-5xl lg:text-7xl font-black tracking-tighter leading-[0.95] mb-4 text-transparent bg-clip-text bg-gradient-to-br from-white to-white/40 drop-shadow-lg py-1">
-                                {cleanTitle(track.title)}
-                            </h1>
-
-                            {/* Artist & Metadata */}
-                            <div className="flex items-center gap-4 text-white/60 mb-10">
-                                <span className="text-xl font-medium tracking-tight text-white/80">{track.artist}</span>
-                                <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                                <span className="text-sm font-mono uppercase tracking-widest">{Math.floor(Math.random() * 4 + 2)}:{String(Math.floor(Math.random() * 59)).padStart(2, '0')}</span>
-                                <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                                <span className="text-sm font-mono uppercase tracking-widest">HQ Audio</span>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex items-center gap-4">
-                                <button
-                                    onClick={() => playTrack(track, initialTracks)}
-                                    className="flex items-center gap-3 px-8 py-4 bg-white text-black rounded-full font-bold uppercase tracking-widest text-[11px] hover:scale-105 active:scale-95 transition-transform"
-                                >
-                                    {isCurrentTrack ? <PlayCircle className="w-5 h-5" /> : <Play className="w-5 h-5 fill-black" />}
-                                    {isCurrentTrack ? "Playing" : "Listen Now"}
-                                </button>
-
-                                <button className="w-14 h-14 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 hover:border-white/30 transition-all text-white/60 hover:text-white">
-                                    <Plus className="w-6 h-6" />
-                                </button>
-                            </div>
-                        </motion.div>
-                    </AnimatePresence>
-                </div>
-            </main>
-
-            {/* ── Bottom Carousel & Navigation ── */}
-            <footer className="relative z-20 flex flex-col xl:flex-row xl:items-end justify-between px-6 md:px-12 pb-32 md:pb-36 mt-auto gap-8 flex-shrink-0">
-
-                {/* Horizontal Track Ribbon */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
-                    <span className="text-[10px] tracking-[0.3em] font-bold text-white/30 uppercase flex-shrink-0">Up Next</span>
-                    <div className="flex gap-3 sm:gap-4 items-center h-[60px] sm:h-[80px] overflow-x-auto hide-scrollbar snap-x">
-                        {initialTracks.map((t, i) => {
-                            const isSelected = i === idx;
-                            return (
-                                <motion.div
-                                    key={t.id}
-                                    onClick={() => setIdx(i)}
-                                    animate={{
-                                        width: isSelected ? 80 : 56,
-                                        height: isSelected ? 80 : 56,
-                                        opacity: isSelected ? 1 : 0.4
-                                    }}
-                                    transition={{ type: "spring", stiffness: 300, damping: 24 }}
-                                    className="cursor-pointer rounded-2xl overflow-hidden relative group"
-                                >
-                                    <img src={t.albumImageUrl} className="w-full h-full object-cover" />
-                                    {!isSelected && <div className="absolute inset-0 bg-black/50 group-hover:bg-transparent transition-colors" />}
-                                    {isSelected && <div className="absolute inset-0 shadow-[inset_0_0_0_2px_rgba(255,255,255,1)] rounded-2xl" />}
-                                </motion.div>
-                            );
-                        })}
+            <div className="relative z-20 w-full md:w-1/2 flex flex-col gap-8 text-center md:text-left">
+                <div className="space-y-4">
+                    <motion.div initial={{ width: 0 }} whileInView={{ width: 60 }} transition={{ duration: 1, delay: 0.5 }} className="h-1 bg-white/20 rounded-full mx-auto md:mx-0" />
+                    <h2 className="text-5xl lg:text-7xl xl:text-8xl font-black italic uppercase tracking-tighter leading-[0.85] text-white">
+                        {cleanTitle(track.title).split(' ').map((word, i) => (
+                            <span key={i} className={i % 2 !== 0 ? "text-transparent stroke-text" : ""}>{word} </span>
+                        ))}
+                    </h2>
+                    <div className="flex items-baseline justify-center md:justify-start gap-4 mt-2">
+                        <span className="text-xl lg:text-3xl font-serif text-white/40 italic">{track.artist}</span>
                     </div>
                 </div>
 
-                {/* Giant Pagination Controls */}
-                <div className="flex items-center gap-6">
-                    <div className="flex flex-col items-end mr-4">
-                        <span className="text-[10px] tracking-widest font-mono text-white/40 uppercase">Index</span>
-                        <div className="flex items-baseline gap-1 font-mono">
-                            <span className="text-2xl font-bold">{String(idx + 1).padStart(2, "0")}</span>
-                            <span className="text-sm text-white/30">/ {String(initialTracks.length).padStart(2, "0")}</span>
+                <div className="flex flex-wrap gap-4 items-center justify-center md:justify-start mt-4">
+                    <button
+                        onClick={() => playTrack(track, allTracks)}
+                        className="flex items-center gap-4 px-10 py-5 bg-white text-black rounded-full font-black uppercase tracking-widest text-[11px] hover:scale-105 active:scale-95 transition-all shadow-xl"
+                    >
+                        {isActive ? "Resonating" : "Listen Vibration"}
+                        <Disc className={`w-4 h-4 ${isActive ? "animate-spin" : ""}`} />
+                    </button>
+                    <button
+                        onClick={() => toggleLikeTrack(track)}
+                        className={`p-5 rounded-full border transition-all ${isSaved ? "bg-white/10 border-white/20 text-white" : "border-white/5 text-white/40 hover:border-white/20 hover:text-white"}`}
+                    >
+                        <Plus className={`w-5 h-5 transition-transform duration-500 ${isSaved ? "rotate-45" : ""}`} />
+                    </button>
+                </div>
+            </div>
+
+            <style jsx>{`
+                .stroke-text {
+                    -webkit-text-stroke: 1px rgba(255,255,255,0.2);
+                }
+            `}</style>
+        </motion.div>
+    );
+}
+
+// ── MAIN VIEW ───────────────────────────────────────────────────────────────
+export function DiscoverClientView({ initialTracks }: { initialTracks: DiscoverTrack[] }) {
+    const router = useRouter();
+    const [mounted, setMounted] = useState(false);
+    const [isNavigating, setIsNavigating] = useState(false);
+    const [portalPos, setPortalPos] = useState({ x: 0, y: 0 });
+
+    const mouseX = useMotionValue(0);
+    const mouseY = useMotionValue(0);
+    const smoothX = useSpring(mouseX, { stiffness: 50, damping: 20 });
+    const smoothY = useSpring(mouseY, { stiffness: 50, damping: 20 });
+
+    const titleRotateX = useTransform(smoothY, [-0.5, 0.5], ["10deg", "-10deg"]);
+    const titleRotateY = useTransform(smoothX, [-0.5, 0.5], ["-10deg", "10deg"]);
+
+    useEffect(() => {
+        setMounted(true);
+        const handleMove = (e: MouseEvent) => {
+            mouseX.set(e.clientX / window.innerWidth - 0.5);
+            mouseY.set(e.clientY / window.innerHeight - 0.5);
+        };
+        window.addEventListener("mousemove", handleMove);
+        return () => window.removeEventListener("mousemove", handleMove);
+    }, [mouseX, mouseY]);
+
+    const handleNavigate = (e: React.MouseEvent, query: string) => {
+        setPortalPos({ x: e.clientX, y: e.clientY });
+        setIsNavigating(true);
+        setTimeout(() => router.push(`/?q=${query}`), 800);
+    };
+
+    if (!mounted) return null;
+
+    return (
+        <div className="relative w-full bg-[#060608] text-white selection:bg-white/10 overflow-x-hidden no-scrollbar">
+            <AnimatePresence>
+                {isNavigating && (
+                    <motion.div
+                        initial={{ clipPath: `circle(0% at ${portalPos.x}px ${portalPos.y}px)` }}
+                        animate={{ clipPath: `circle(150% at ${portalPos.x}px ${portalPos.y}px)` }}
+                        transition={{ duration: 0.8, ease: [0.76, 0, 0.24, 1] }}
+                        className="fixed inset-0 z-[100] bg-black border border-white/5 pointer-events-none"
+                    />
+                )}
+            </AnimatePresence>
+
+            {!initialTracks || initialTracks.length === 0 ? (
+                <div className="h-screen w-full flex items-center justify-center text-white/50 text-[10px] font-black uppercase tracking-widest bg-[#060608]">
+                    Awaiting Transmission...
+                </div>
+            ) : (
+                <>
+                    <div className="fixed inset-0 pointer-events-none z-0">
+                        <div className="absolute inset-0 opacity-[0.05] mix-blend-screen" style={{ backgroundImage: NOISE }} />
+                    </div>
+
+                    <section className="relative h-screen flex flex-col justify-center px-6 lg:px-12 perspective-[1500px]">
+                        <div className="relative z-10 pointer-events-none">
+                            <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-[11px] font-black tracking-[0.8em] text-white/20 uppercase mb-8">
+                                Acoustic Archive
+                            </motion.p>
+                            <motion.h1
+                                style={{ rotateX: titleRotateX, rotateY: titleRotateY, transformStyle: "preserve-3d" }}
+                                initial={{ opacity: 0, z: -200 }} animate={{ opacity: 1, z: 0 }} transition={{ delay: 0.2, duration: 1.5 }}
+                                className="text-[clamp(48px,15vw,120px)] md:text-[clamp(80px,16vw,200px)] font-black leading-[0.75] italic uppercase tracking-tighter"
+                            >
+                                Exp<span className="text-transparent" style={{ WebkitTextStroke: "1px rgba(255,255,255,0.2)" }}>lo</span>re
+                            </motion.h1>
                         </div>
-                    </div>
-                    <div className="flex gap-2">
-                        <button onClick={() => navigate(-1)} className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors">
-                            <ArrowRight className="w-5 h-5 text-white rotate-180" />
-                        </button>
-                        <button onClick={() => navigate(1)} className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors">
-                            <ArrowRight className="w-5 h-5 text-white" />
-                        </button>
-                    </div>
-                </div>
-            </footer>
+                        <div className="absolute bottom-20 right-12 text-right">
+                            <p className="text-xs font-serif italic text-white/40 max-w-sm mb-6 leading-relaxed">
+                                A curated dimension where sound meets architectural space.
+                            </p>
+                            <motion.div animate={{ y: [0, 15, 0] }} transition={{ duration: 2, repeat: Infinity }} className="inline-block opacity-20">
+                                <ArrowRight className="w-16 h-16 text-white rotate-90" />
+                            </motion.div>
+                        </div>
+                    </section>
+
+                    <section className="container mx-auto px-6 lg:px-12 relative z-10">
+                        <div className="mb-40 flex items-center justify-between border-b border-white/5 pb-12">
+                            <h2 className="text-2xl font-black uppercase tracking-[0.5em] text-white/40 italic">Latest Entries</h2>
+                        </div>
+                        {initialTracks.map((track, i) => (
+                            <ExhibitionTrack key={track.id} track={track} index={i} allTracks={initialTracks} />
+                        ))}
+                    </section>
+
+                    <FrequencyNodes onNavigate={handleNavigate} />
+                </>
+            )}
         </div>
     );
 }

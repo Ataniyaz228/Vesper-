@@ -6,6 +6,8 @@ import { Play, Heart, Disc3, ArrowRight, ListMusic, Search, LayoutGrid, List, X 
 import { useRouter } from "next/navigation";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { usePlayerStore } from "@/store/usePlayerStore";
+import { AuraTrackImage } from "@/components/ui/AuraTrackImage";
+import { MiniWave } from "@/components/ui/MiniWave";
 import { Track, Playlist } from "@/lib/youtube";
 
 const NOISE = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
@@ -18,18 +20,6 @@ function cleanTitle(raw: string) {
         .trim() || raw.slice(0, 48);
 }
 
-function Waveform() {
-    const bars = [3, 6, 9, 7, 5, 8, 6, 4];
-    return (
-        <div className="flex items-end gap-[2px] h-[14px]">
-            {bars.map((h, i) => (
-                <motion.div key={i} className="w-[2px] rounded-full bg-white/90 shadow-[0_0_10px_#fff]"
-                    animate={{ height: [h * 2, h * 3.4, h * 1.5, h * 3, h * 2] }}
-                    transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.08, ease: "easeInOut" }} />
-            ))}
-        </div>
-    );
-}
 
 // ── 3D COVER PARALLAX SHOWCASE ──────────────────────────────────────────────
 function CoverShowcase({ items }: { items: (Track | Playlist)[] }) {
@@ -62,7 +52,7 @@ function CoverShowcase({ items }: { items: (Track | Playlist)[] }) {
 }
 
 // ── COMPACT TRACK ROW ─────────────────────────────────────────────────────
-function CompactTrackRow({ track, index, isActive, isPlaying, onClick }: { track: Track; index: number; isActive: boolean; isPlaying: boolean; onClick: () => void }) {
+function CompactTrackRow({ track, index, isActive, isPlaying, isLoading, onClick }: { track: Track; index: number; isActive: boolean; isPlaying: boolean; isLoading: boolean; onClick: () => void }) {
     return (
         <motion.div
             initial={{ opacity: 0, x: -10 }}
@@ -72,10 +62,14 @@ function CompactTrackRow({ track, index, isActive, isPlaying, onClick }: { track
             className={`group flex items-center gap-4 px-4 py-2 cursor-pointer rounded-lg hover:bg-white/[0.04] transition-all border border-transparent ${isActive ? "bg-white/[0.06] border-white/5" : ""}`}
         >
             <div className="w-8 flex-shrink-0 flex justify-center items-center">
-                {isActive && isPlaying ? <Waveform /> : <span className="text-[10px] tabular-nums font-bold text-white/20 group-hover:text-white/60 transition-colors">{index + 1}</span>}
+                {isActive ? <MiniWave active={isPlaying && !isLoading} /> : <span className="text-[10px] tabular-nums font-bold text-white/20 group-hover:text-white/60 transition-colors">{index + 1}</span>}
             </div>
             <div className="w-8 h-8 rounded-md overflow-hidden bg-white/5 flex-shrink-0">
-                {track.albumImageUrl && <img src={track.albumImageUrl} className="w-full h-full object-cover" />}
+                <AuraTrackImage
+                    trackId={track.id}
+                    fallbackUrl={track.albumImageUrl}
+                    className="w-full h-full object-cover"
+                />
             </div>
             <div className="flex-1 min-w-0">
                 <p className={`text-sm font-bold truncate ${isActive ? "text-white" : "text-white/80 group-hover:text-white"}`}>{track.title}</p>
@@ -89,7 +83,7 @@ function CompactTrackRow({ track, index, isActive, isPlaying, onClick }: { track
 }
 
 // ── EDITORIAL TRACK ROW ─────────────────────────────────────────────────────
-function TrackRow({ track, index, isActive, isPlaying, onClick }: { track: Track; index: number; isActive: boolean; isPlaying: boolean; onClick: () => void }) {
+function TrackRow({ track, index, isActive, isPlaying, isLoading, onClick }: { track: Track; index: number; isActive: boolean; isPlaying: boolean; isLoading: boolean; onClick: () => void }) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -110,8 +104,8 @@ function TrackRow({ track, index, isActive, isPlaying, onClick }: { track: Track
             <div className="relative z-10 flex items-center gap-8 w-full">
                 {/* Big typography number */}
                 <div className="w-16 flex-shrink-0 flex justify-end">
-                    {isActive && isPlaying ? (
-                        <Waveform />
+                    {isActive ? (
+                        <MiniWave active={isPlaying && !isLoading} />
                     ) : (
                         <span className="font-serif text-3xl italic text-white/20 group-hover:text-white/80 transition-colors">
                             {String(index + 1).padStart(2, "0")}
@@ -124,9 +118,11 @@ function TrackRow({ track, index, isActive, isPlaying, onClick }: { track: Track
                     <div className="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors z-10 hidden sm:flex items-center justify-center">
                         {!isActive && <Play className="w-6 h-6 fill-white text-white opacity-0 group-hover:opacity-100 transition-opacity" />}
                     </div>
-                    {track.albumImageUrl && (
-                        <img src={track.albumImageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
-                    )}
+                    <AuraTrackImage
+                        trackId={track.id}
+                        fallbackUrl={track.albumImageUrl}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    />
                 </div>
 
                 {/* Info */}
@@ -186,7 +182,7 @@ function PlaylistBentoCard({ playlist, index, onClick }: { playlist: Playlist; i
                     <div className="flex items-center gap-2">
                         <div className="h-px w-4 bg-white/20" />
                         <p className={`text-white/60 font-medium ${isLarge ? "text-sm max-w-sm" : "text-[10px]"} line-clamp-1`}>
-                            {playlist.tracks.length} tracks • Curated for you
+                            {playlist.tracks?.length || 0} tracks • Curated for you
                         </p>
                     </div>
                 </div>
@@ -222,7 +218,7 @@ function PlaylistGridCard({ playlist, index, onClick }: { playlist: Playlist; in
                     {cleanTitle(playlist.title)}
                 </h4>
                 <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">
-                    {playlist.tracks.length} tracks
+                    {playlist.tracks?.length || 0} tracks
                 </p>
             </div>
         </motion.div>
@@ -241,7 +237,7 @@ export default function LibraryPage() {
     const [playlistView, setPlaylistView] = useState<"bento" | "grid">("bento");
 
     const { likedTracks, savedPlaylists } = useLibraryStore();
-    const { playTrack, currentTrack, isPlaying } = usePlayerStore();
+    const { playTrack, currentTrack, isPlaying, isLoading } = usePlayerStore();
 
     const filteredTracks = likedTracks.filter(t =>
         t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -457,6 +453,7 @@ export default function LibraryPage() {
                                             index={i}
                                             isActive={currentTrack?.id === track.id}
                                             isPlaying={isPlaying}
+                                            isLoading={isLoading}
                                             onClick={() => playTrack(track, filteredTracks.slice(i))}
                                         />
                                     ) : (
@@ -466,6 +463,7 @@ export default function LibraryPage() {
                                             index={i}
                                             isActive={currentTrack?.id === track.id}
                                             isPlaying={isPlaying}
+                                            isLoading={isLoading}
                                             onClick={() => playTrack(track, filteredTracks.slice(i))}
                                         />
                                     )

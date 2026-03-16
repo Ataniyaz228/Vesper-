@@ -8,8 +8,9 @@ import {
 } from "framer-motion";
 import { Search, Loader2, Play, X, ArrowRight } from "lucide-react";
 import { TrackRow } from "@/components/ui/TrackRow";
+import { AuraTrackImage } from "@/components/ui/AuraTrackImage";
 import { usePlayerStore } from "@/store/usePlayerStore";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Playlist, Track } from "@/lib/youtube";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -360,7 +361,11 @@ function ChartRow({ track, index, active, onClick }: { track: Track; index: numb
         {String(index + 1).padStart(2, "0")}
       </span>
       <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 ring-1 ring-white/[0.06]">
-        {track.albumImageUrl && <img src={track.albumImageUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />}
+        <AuraTrackImage
+          trackId={track.id}
+          fallbackUrl={track.albumImageUrl}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        />
       </div>
       <div className="flex flex-col min-w-0 flex-1">
         <span className="text-white text-[12px] font-semibold truncate">{track.title}</span>
@@ -388,6 +393,8 @@ export default function Home() {
   const [loadingShelf, setLoadingShelf] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const searchParams = useSearchParams();
+
   useEffect(() => {
     (async () => {
       try {
@@ -400,6 +407,15 @@ export default function Home() {
       } catch { } finally { setLoadingShelf(false); }
     })();
   }, []);
+
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q) {
+      setQuery(q);
+      setSearchOpen(true);
+      doSearch(q);
+    }
+  }, [searchParams]);
 
   const doSearch = async (q: string) => {
     if (!q.trim()) { setResults([]); return; }

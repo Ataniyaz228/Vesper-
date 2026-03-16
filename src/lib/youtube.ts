@@ -90,18 +90,9 @@ export const searchMusic = async (query: string, order: string = "relevance", ma
         };
     });
 
-    // Enhance all tracks with high-res iTunes art in parallel
-    const enhancedTracks = await Promise.all(
-        tracks.map(async (track) => {
-            const iTunesArt = await getITunesCoverArt(track.title, track.artist);
-            if (iTunesArt) {
-                return { ...track, albumImageUrl: iTunesArt };
-            }
-            return track;
-        })
-    );
-
-    return enhancedTracks;
+    // Enhancement: Return basic results fast by default.
+    // High-res art fetching is very slow for large lists.
+    return tracks;
 };
 
 export const searchPlaylists = async (query: string): Promise<Playlist[]> => {
@@ -195,22 +186,14 @@ export const getPlaylistDetails = async (playlistId: string): Promise<Playlist> 
         };
     });
 
-    // Enhance all playlist tracks with high-res iTunes art in parallel
-    const enhancedTracks = await Promise.all(
-        tracks.map(async (track) => {
-            const iTunesArt = await getITunesCoverArt(track.title, track.artist);
-            if (iTunesArt) {
-                return { ...track, albumImageUrl: iTunesArt };
-            }
-            return track;
-        })
-    );
-
+    // Enhancement: Return basic metadata fast. 
+    // We remove the high-res iTunes enhancement from here because it slows down the initial page load 
+    // for playlists with many tracks. We will use YouTube thumbnails as base.
     return {
         id: playlistId,
         title: playlistSnippet.title,
         description: playlistSnippet.description,
         imageUrl: getBestThumbnailUrl(playlistSnippet.thumbnails),
-        tracks: enhancedTracks,
+        tracks: tracks,
     };
 };

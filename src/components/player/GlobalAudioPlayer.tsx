@@ -5,6 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Heart } from "lucide-react";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
+import { useMetadataStore } from "@/store/useMetadataStore";
+import { AuraTrackImage } from "@/components/ui/AuraTrackImage";
+import { MiniWave } from "@/components/ui/MiniWave";
 import { cn } from "@/lib/utils";
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -24,23 +27,6 @@ function cleanTitle(raw: string) {
         .trim() || raw.slice(0, 48);
 }
 
-// ── Tiny waveform ────────────────────────────────────────────────
-function MiniWave() {
-    const bars = [3, 5, 7, 5, 4, 6, 4, 3];
-    return (
-        <div className="flex items-end gap-[1.5px]" style={{ height: 10 }}>
-            {bars.map((h, i) => (
-                <motion.div key={i}
-                    style={{ width: 1.5, borderRadius: 2, background: "rgba(255,255,255,0.5)" }}
-                    animate={{ height: [h * 1.5, h * 2.8, h * 1.2, h * 2.5, h * 1.5] }}
-                    transition={{ duration: 1.1, repeat: Infinity, delay: i * 0.09, ease: "easeInOut" }}
-                />
-            ))}
-        </div>
-    );
-}
-
-// ── Ambient glow from album art ─────────────────────────────────
 function AmbientGlow({ imageUrl }: { imageUrl?: string }) {
     return (
         <AnimatePresence mode="wait">
@@ -57,9 +43,42 @@ function AmbientGlow({ imageUrl }: { imageUrl?: string }) {
 }
 
 export const GlobalAudioPlayer = () => {
-    const { currentTrack, isPlaying, progress, duration, volume, togglePlay, nextTrack, prevTrack, setVolume, seekTo } = usePlayerStore();
+    const { currentTrack, isPlaying, isLoading, progress, duration, volume, togglePlay, nextTrack, prevTrack, setVolume, seekTo, setTrackArt } = usePlayerStore();
     const { toggleLikeTrack, isTrackLiked } = useLibraryStore();
     const liked = currentTrack ? isTrackLiked(currentTrack.id) : false;
+
+    // Enhance cover art lazily when track changes
+    useEffect(() => {
+        if (!currentTrack) return;
+
+        const fetchArt = async () => {
+            // Check if we already have it in store
+            const existing = useMetadataStore.getState().enhancedCovers[currentTrack.id];
+            if (existing) {
+                // If it already exists in global store but NOT in current player state, sync it
+                if (existing !== currentTrack.albumImageUrl) {
+                    setTrackArt(currentTrack.id, existing);
+                }
+                return;
+            }
+
+            const isLowRes = currentTrack.albumImageUrl?.includes("ytimg.com");
+            if (!isLowRes) return;
+
+            try {
+                const res = await fetch(`/api/metadata/art?title=${encodeURIComponent(currentTrack.title)}&artist=${encodeURIComponent(currentTrack.artist)}`);
+                const data = await res.json();
+                if (data.url && data.url !== currentTrack.albumImageUrl) {
+                    setTrackArt(currentTrack.id, data.url);
+                    // Also save to global metadata registry for ALL components
+                    useMetadataStore.getState().setEnhancedCover(currentTrack.id, data.url);
+                }
+            } catch (e) {
+                console.error("[ArtEnhance] Failed:", e);
+            }
+        };
+        fetchArt();
+    }, [currentTrack?.id, setTrackArt]);
 
     const [localProg, setLocalProg] = useState(progress);
     const [isDrag, setIsDrag] = useState(false);
@@ -130,7 +149,7 @@ export const GlobalAudioPlayer = () => {
                             </motion.span>
                         </AnimatePresence>
                         <div className="flex items-center gap-2 mt-0.5">
-                            {isPlaying && <MiniWave />}
+                            <MiniWave active={isPlaying && !isLoading} />
                             <span className="text-[11px] text-white/32 truncate">{currentTrack.artist}</span>
                         </div>
                     </div>

@@ -6,6 +6,8 @@ import { ArrowLeft, Play, Heart, Pause } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
+import { AuraTrackImage } from "@/components/ui/AuraTrackImage";
+import { MiniWave } from "@/components/ui/MiniWave";
 import { Playlist, Track } from "@/lib/youtube";
 
 const NOISE = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
@@ -14,23 +16,10 @@ function cleanTitle(raw: string) {
     return raw.replace(/\s*[-–|]\s*(official|video|audio|lyrics|youtube).*$/i, "").replace(/\s*[\[\(].*?[\]\)]/g, "").trim();
 }
 
-// ── Animated waveform ───────────────────────────────────────────
-function Waveform() {
-    const bars = [3, 6, 9, 7, 5, 8, 6, 4];
-    return (
-        <div className="flex items-end gap-[2px] h-[14px]">
-            {bars.map((h, i) => (
-                <motion.div key={i} className="w-[2px] rounded-full bg-white/70"
-                    animate={{ height: [h * 2, h * 3.4, h * 1.5, h * 3, h * 2] }}
-                    transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.08, ease: "easeInOut" }} />
-            ))}
-        </div>
-    );
-}
 
 // ── Single track row ──────────────────────────────────────────────
-function Row({ track, index, isActive, isPlaying, onClick }: {
-    track: Track; index: number; isActive: boolean; isPlaying: boolean; onClick: () => void;
+function Row({ track, index, isActive, isPlaying, isLoading, onClick }: {
+    track: Track; index: number; isActive: boolean; isPlaying: boolean; isLoading: boolean; onClick: () => void;
 }) {
     return (
         <motion.div
@@ -44,8 +33,8 @@ function Row({ track, index, isActive, isPlaying, onClick }: {
         >
             {/* Index / waveform */}
             <div className="w-8 flex items-center justify-center flex-shrink-0">
-                {isActive && isPlaying ? (
-                    <Waveform />
+                {isActive ? (
+                    <MiniWave active={isPlaying && !isLoading} />
                 ) : (
                     <span className={`text-[11px] tabular-nums font-semibold transition-opacity ${isActive ? "text-white/80" : "text-white/18 group-hover:opacity-0"}`}>
                         {String(index + 1).padStart(2, "0")}
@@ -58,9 +47,11 @@ function Row({ track, index, isActive, isPlaying, onClick }: {
 
             {/* Thumb */}
             <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-white/[0.05]">
-                {track.albumImageUrl && (
-                    <img src={track.albumImageUrl} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                )}
+                <AuraTrackImage
+                    trackId={track.id}
+                    fallbackUrl={track.albumImageUrl}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
             </div>
 
             {/* Info */}
@@ -82,7 +73,7 @@ function Row({ track, index, isActive, isPlaying, onClick }: {
 // ── Page ───────────────────────────────────────────────────────────
 export function PlaylistClientView({ playlist }: { playlist: Playlist }) {
     const router = useRouter();
-    const { playTrack, currentTrack, isPlaying, togglePlay } = usePlayerStore();
+    const { playTrack, currentTrack, isPlaying, isLoading, togglePlay } = usePlayerStore();
     const { toggleSavePlaylist, isPlaylistSaved } = useLibraryStore();
     const isSaved = isPlaylistSaved(playlist.id);
     const heroRef = useRef<HTMLDivElement>(null);
@@ -206,11 +197,12 @@ export function PlaylistClientView({ playlist }: { playlist: Playlist }) {
                 {playlist.tracks.length > 0 ? (
                     playlist.tracks.map((track, idx) => (
                         <Row
-                            key={track.id}
+                            key={`${track.id}-${idx}`}
                             track={track}
                             index={idx}
                             isActive={currentTrack?.id === track.id}
                             isPlaying={isPlaying}
+                            isLoading={isLoading}
                             onClick={() => handlePlay(track, idx)}
                         />
                     ))
