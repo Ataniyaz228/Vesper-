@@ -9,21 +9,15 @@ import { useLibraryStore } from "@/store/useLibraryStore";
 import { AuraTrackImage } from "@/components/ui/AuraTrackImage";
 import { Track } from "@/lib/youtube";
 
+// ── TYPES & HELPERS ─────────────────────────────────────────────────────────
 interface DiscoverTrack extends Track {
     color1: string;
     color2: string;
     bgGradient: string;
 }
 
-const NOISE = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
-
-function cleanTitle(raw: string) {
-    return raw
-        .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}]/gu, "")
-        .replace(/\s*[-–~|]\s*(official|video|audio|lyrics|music video|top hits|top songs|trending|playlist|songs|\d{4}).*$/i, "")
-        .replace(/\s*[\[\(].*?[\]\)]/g, "")
-        .trim() || raw.slice(0, 48);
-}
+import { cleanTitle } from "@/lib/utils";
+import { NOISE_URL as NOISE } from "@/lib/constants";
 
 // ── COMPONENT: CLUSTER CARD ──────────────────────────────────────────────────
 function ClusterCard({ title, desc, img, onClick }: { title: string, desc: string, img: string, onClick: (e: React.MouseEvent) => void }) {
@@ -61,7 +55,9 @@ function ClusterCard({ title, desc, img, onClick }: { title: string, desc: strin
             </div>
 
             <div className="absolute top-8 left-10">
-                <div className="text-[8px] font-mono text-white/20 uppercase tracking-[0.6em] group-hover:text-white/40 transition-colors">Nodes_0{Math.floor(Math.random() * 9)}</div>
+                <div className="text-[8px] font-mono text-white/20 uppercase tracking-[0.6em] group-hover:text-white/40 transition-colors">
+                    Nodes_07
+                </div>
             </div>
         </motion.div>
     );
@@ -145,26 +141,26 @@ function FrequencyNodes({ onNavigate }: { onNavigate: (e: React.MouseEvent, q: s
         update();
         window.addEventListener("resize", update);
         return () => window.removeEventListener("resize", update);
-    }, []);
+    }, [rawX]);
 
     const renderX = useTransform(smoothX, (v) => {
         if (setWidth === 0) return v;
         return wrap(-setWidth * 2, -setWidth, v);
     });
 
-    const handleWheel = (e: WheelEvent) => {
-        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-            e.preventDefault();
-            rawX.set(rawX.get() - e.deltaY * 1.2);
-        }
-    };
-
     useEffect(() => {
+        const handleWheel = (e: WheelEvent) => {
+            if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                e.preventDefault();
+                rawX.set(rawX.get() - e.deltaY * 1.2);
+            }
+        };
+
         const el = containerRef.current;
         if (!el) return;
         el.addEventListener("wheel", handleWheel, { passive: false });
         return () => el.removeEventListener("wheel", handleWheel);
-    }, [setWidth]);
+    }, [rawX]);
 
     return (
         <div className="relative pt-32 pb-64 border-t border-white/5 overflow-hidden">
@@ -300,7 +296,11 @@ export function DiscoverClientView({ initialTracks }: { initialTracks: DiscoverT
     const titleRotateY = useTransform(smoothX, [-0.5, 0.5], ["-10deg", "10deg"]);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
+    }, []);
+
+    useEffect(() => {
         const handleMove = (e: MouseEvent) => {
             mouseX.set(e.clientX / window.innerWidth - 0.5);
             mouseY.set(e.clientY / window.innerHeight - 0.5);

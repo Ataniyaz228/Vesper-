@@ -1,21 +1,25 @@
 "use client";
 
-import React, { useRef, useMemo, Suspense } from "react";
+import React, { useRef, Suspense } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Environment, Float, PresentationControls, useTexture } from "@react-three/drei";
+import { Environment, PresentationControls, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 
 // --- Detailed 3D Vinyl Record ---
-const VinylRecord = ({ activeTrack }: { activeTrack: any }) => {
+const VinylRecord = ({ activeTrack }: { activeTrack: { coverUrl?: string, color2?: string } }) => {
     const groupRef = useRef<THREE.Group>(null);
 
     // Load the actual cover art texture directly from CORS-friendly source
-    const texture = useTexture(activeTrack.coverUrl as string) as THREE.Texture;
-    texture.colorSpace = THREE.SRGBColorSpace;
+    const textureBase = useTexture(activeTrack.coverUrl as string) as THREE.Texture;
+    const texture = React.useMemo(() => {
+        const cloned = textureBase.clone();
+        cloned.colorSpace = THREE.SRGBColorSpace;
 
-    // Fix texture rotation because of how CircleGeometry maps UVs
-    texture.center.set(0.5, 0.5);
-    texture.rotation = -Math.PI / 2;
+        // Fix texture rotation because of how CircleGeometry maps UVs
+        cloned.center.set(0.5, 0.5);
+        cloned.rotation = -Math.PI / 2;
+        return cloned;
+    }, [textureBase]);
 
     useFrame((state, delta) => {
         if (groupRef.current) {
@@ -78,7 +82,7 @@ const VinylRecord = ({ activeTrack }: { activeTrack: any }) => {
     );
 };
 
-export default function ThreeDSceneComponent({ activeTrack }: { activeTrack?: any }) {
+export default function ThreeDSceneComponent({ activeTrack }: { activeTrack?: { coverUrl?: string, color2?: string } }) {
     return (
         <Canvas camera={{ position: [0, 0, 10], fov: 35 }} dpr={[1, 2]}>
             <Environment preset="studio" />
@@ -95,12 +99,12 @@ export default function ThreeDSceneComponent({ activeTrack }: { activeTrack?: an
                 rotation={[0, 0, 0]}
                 polar={[-Math.PI / 4, Math.PI / 4]}
                 azimuth={[-Math.PI / 3, Math.PI / 3]}
-                // @ts-ignore
+                // @ts-expect-error PresentationControls types are incomplete
                 config={{ mass: 1, tension: 170, friction: 26 }}
             >
                 <Suspense fallback={null}>
                     <group scale={1.2} position={[0, 0.2, 0]}>
-                        <VinylRecord activeTrack={activeTrack} />
+                        {activeTrack && <VinylRecord activeTrack={activeTrack} />}
                     </group>
                 </Suspense>
             </PresentationControls>

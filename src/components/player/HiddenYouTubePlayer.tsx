@@ -22,12 +22,13 @@ export const HiddenYouTubePlayer = () => {
 
     const [isMounted, setIsMounted] = useState(false);
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsMounted(true);
     }, []);
 
     useEffect(() => {
         if (player) {
-            try { player.setVolume(volume * 100); } catch (e) { }
+            try { player.setVolume(volume * 100); } catch { }
         }
     }, [volume, player]);
 
@@ -36,7 +37,7 @@ export const HiddenYouTubePlayer = () => {
             try {
                 player.seekTo(seekTarget, true);
                 clearSeekTarget();
-            } catch (e) { }
+            } catch { }
         }
     }, [seekTarget, player, clearSeekTarget]);
 
@@ -48,7 +49,7 @@ export const HiddenYouTubePlayer = () => {
                 } else {
                     player.pauseVideo();
                 }
-            } catch (e) { }
+            } catch { }
         }
     }, [isPlaying, player, currentTrack]);
 
@@ -58,7 +59,7 @@ export const HiddenYouTubePlayer = () => {
                 try {
                     const time = await player.getCurrentTime();
                     setProgress(time);
-                } catch (e) { }
+                } catch { }
             }, 500);
         } else {
             if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
@@ -74,7 +75,7 @@ export const HiddenYouTubePlayer = () => {
         try {
             event.target.setVolume(volume * 100);
             if (isPlaying) event.target.playVideo();
-        } catch (e) { }
+        } catch { }
     };
 
     const onStateChange: YouTubeProps['onStateChange'] = (event) => {
@@ -90,7 +91,7 @@ export const HiddenYouTubePlayer = () => {
             if (event.data === 0) {
                 nextTrack();
             }
-        } catch (e) { }
+        } catch { }
     };
 
     if (!isMounted || !currentTrack) return null;

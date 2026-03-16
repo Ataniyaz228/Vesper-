@@ -85,9 +85,9 @@ export async function getITunesCoverArt(title: string, artist: string): Promise<
                 // artworkUrl100 -> 600x600bb for high-res
                 return data.results[0].artworkUrl100.replace("100x100bb", "600x600bb");
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             // Silently fail for timeouts/aborts so we don't crash SSR/Next.js
-            if (error.name === 'AbortError') {
+            if (error instanceof Error && error.name === 'AbortError') {
                 console.warn(`[iTunesArt] Request timed out for: ${query}`);
             } else {
                 console.error("iTunes API error:", error);

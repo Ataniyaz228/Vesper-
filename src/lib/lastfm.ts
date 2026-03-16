@@ -28,12 +28,12 @@ export async function getGenreForArtist(artistName: string): Promise<string> {
         if (data?.toptags?.tag && Array.isArray(data.toptags.tag)) {
             // Find the top 3 tags that aren't on the blacklist
             const validTags = data.toptags.tag
-                .filter((t: any) => {
+                .filter((t: { name: string }) => {
                     const name = t.name.toLowerCase();
                     return !BLACKLIST.has(name) && name.length > 2 && name.length < 20;
                 })
                 .slice(0, 3) // Get TOP 3
-                .map((t: any) => {
+                .map((t: { name: string }) => {
                     return t.name.split(' ').map((word: string) =>
                         word.charAt(0).toUpperCase() + word.slice(1)
                     ).join(' ');

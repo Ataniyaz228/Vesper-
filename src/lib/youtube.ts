@@ -1,5 +1,5 @@
 import "server-only";
-import { getCleanMetadata, getITunesCoverArt } from "./metadata";
+import { getCleanMetadata } from "./metadata";
 
 // -----------------------------------------------------------------------------
 // STRICT TYPESCRIPT INTERFACES
@@ -43,8 +43,7 @@ const getApiKey = () => {
 const BASE_URL = "https://www.googleapis.com/youtube/v3";
 
 // Helper to pull the best available thumbnail (16:9 ratio, to be cropped by UI)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const getBestThumbnailUrl = (thumbnails: any): string => {
+const getBestThumbnailUrl = (thumbnails: { maxres?: { url: string }, high?: { url: string }, medium?: { url: string }, default?: { url: string } }): string => {
     if (!thumbnails) return "";
     const best = thumbnails.maxres || thumbnails.high || thumbnails.medium || thumbnails.default;
     return best?.url || "";
@@ -77,8 +76,7 @@ export const searchMusic = async (query: string, order: string = "relevance", ma
 
     const data = await response.json();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tracks: Track[] = data.items.map((item: any) => {
+    const tracks: Track[] = data.items.map((item: { id: { videoId: string }, snippet: { title: string, channelTitle: string, thumbnails: { maxres?: { url: string }, high?: { url: string }, medium?: { url: string }, default?: { url: string } } } }) => {
         const { title, artist } = getCleanMetadata(item.snippet.title, item.snippet.channelTitle);
 
         return {
@@ -116,8 +114,7 @@ export const searchPlaylists = async (query: string): Promise<Playlist[]> => {
 
     const data = await response.json();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return data.items.map((item: any) => ({
+    return data.items.map((item: { id: { playlistId: string }, snippet: { title: string, description: string, thumbnails: { maxres?: { url: string }, high?: { url: string }, medium?: { url: string }, default?: { url: string } } } }) => ({
         id: item.id.playlistId,
         title: item.snippet.title,
         description: item.snippet.description,
@@ -170,8 +167,7 @@ export const getPlaylistDetails = async (playlistId: string): Promise<Playlist> 
     const playlistSnippet = playlistData.items[0].snippet;
 
     // Map the playlist items (videos)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tracks = itemsData.items.map((item: any) => {
+    const tracks = itemsData.items.map((item: { snippet: { title: string, videoOwnerChannelTitle?: string, channelTitle: string, resourceId: { videoId: string }, thumbnails: { maxres?: { url: string }, high?: { url: string }, medium?: { url: string }, default?: { url: string } } } }) => {
         const { title, artist } = getCleanMetadata(
             item.snippet.title,
             item.snippet.videoOwnerChannelTitle || item.snippet.channelTitle

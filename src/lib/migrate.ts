@@ -12,7 +12,7 @@ async function migrate() {
   console.log("[migrate] Starting...");
 
   // 1. Create database if it doesn't exist by connecting to default 'postgres' db
-  let connectionString = process.env.DATABASE_URL;
+  const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error("DATABASE_URL is missing in environment variables.");
   }
@@ -35,7 +35,7 @@ async function migrate() {
         await tempPool.query(`CREATE DATABASE "${dbName}"`);
         console.log(`[migrate] Database '${dbName}' created.`);
       }
-    } catch (e) {
+    } catch (e: unknown) {
       console.warn("[migrate] Could not ensure database exists:", e);
     } finally {
       await tempPool.end();
@@ -91,6 +91,8 @@ async function migrate() {
         genre            TEXT DEFAULT 'Unknown',
         listened_at      TIMESTAMPTZ DEFAULT NOW()
       );
+
+      ALTER TABLE listening_history ADD COLUMN IF NOT EXISTS genre TEXT DEFAULT 'Unknown';
     `);
 
     // Auto-update updated_at on row change

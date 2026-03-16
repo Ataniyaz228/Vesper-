@@ -4,7 +4,7 @@ import React, { useRef } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-const InteractiveAlbumCard = ({ track, activeIndex, index }: { track: any, activeIndex: number, index: number }) => {
+const InteractiveAlbumCard = ({ track, activeIndex, index }: { track: { id: string, coverUrl: string, title: string, color1: string, color2: string }, activeIndex: number, index: number }) => {
     const cardRef = useRef<HTMLDivElement>(null);
     const x = useMotionValue(0);
     const y = useMotionValue(0);
@@ -13,7 +13,7 @@ const InteractiveAlbumCard = ({ track, activeIndex, index }: { track: any, activ
     const mouseYSpring = useSpring(y, { stiffness: 150, damping: 20 });
 
     const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["15deg", "-15deg"]);
-    const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-15deg", "15deg"]);
+    // rotateY was unused according to linting error
     const glareX = useTransform(mouseXSpring, [-0.5, 0.5], ["100%", "0%"]);
     const glareY = useTransform(mouseYSpring, [-0.5, 0.5], ["100%", "0%"]);
 
@@ -125,7 +125,7 @@ const InteractiveAlbumCard = ({ track, activeIndex, index }: { track: any, activ
     );
 };
 
-export default function SpatialAlbumGallery({ tracks, activeIndex }: { tracks: any[], activeIndex: number }) {
+export default function SpatialAlbumGallery({ tracks, activeIndex }: { tracks: Array<{ id: string, coverUrl: string, title: string, color1: string, color2: string }>, activeIndex: number }) {
     return (
         <div className="relative w-full h-full perspective-[1500px] flex items-center justify-center transform-style-3d overflow-visible">
             {tracks.map((track, i) => (

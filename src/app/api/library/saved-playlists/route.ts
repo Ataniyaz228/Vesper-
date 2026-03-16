@@ -16,7 +16,7 @@ export async function GET() {
         `, [user.userId]);
 
         return NextResponse.json({
-            playlists: rows.map((r: any) => ({ ...r, tracks: [] }))
+            playlists: rows.map((r: Record<string, unknown>) => ({ ...r, tracks: [] }))
         });
     } catch (error) {
         console.error("[api/library/saved-playlists] GET Error:", error);

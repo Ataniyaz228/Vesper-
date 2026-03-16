@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
-import { motion, useScroll, useTransform, AnimatePresence, useSpring } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { Play, Heart, Disc3, ArrowRight, ListMusic, Search, LayoutGrid, List, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLibraryStore } from "@/store/useLibraryStore";
@@ -9,16 +9,9 @@ import { usePlayerStore } from "@/store/usePlayerStore";
 import { AuraTrackImage } from "@/components/ui/AuraTrackImage";
 import { MiniWave } from "@/components/ui/MiniWave";
 import { Track, Playlist } from "@/lib/youtube";
+import { cleanTitle } from "@/lib/utils";
 
-const NOISE = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
-
-function cleanTitle(raw: string) {
-    return raw
-        .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}]/gu, "")
-        .replace(/\s*[-–~|]\s*(official|video|audio|lyrics|music video|top hits|top songs|trending|playlist|songs|\d{4}).*$/i, "")
-        .replace(/\s*[\[\(].*?[\]\)]/g, "")
-        .trim() || raw.slice(0, 48);
-}
+import { NOISE_URL as NOISE } from "@/lib/constants";
 
 
 // ── 3D COVER PARALLAX SHOWCASE ──────────────────────────────────────────────
@@ -44,7 +37,7 @@ function CoverShowcase({ items }: { items: (Track | Playlist)[] }) {
                     }}
                     className="relative w-[400px] h-[400px] rounded-3xl overflow-hidden shrink-0 shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-white/5"
                 >
-                    {src && <img src={src} className="w-full h-full object-cover saturate-0 brightness-50" />}
+                    {src && <img src={src} alt="" className="w-full h-full object-cover saturate-0 brightness-50" />}
                 </motion.div>
             ))}
         </div>
@@ -249,7 +242,10 @@ export default function LibraryPage() {
         p.description?.toLowerCase().includes(playlistSearch.toLowerCase())
     );
 
-    useEffect(() => setMounted(true), []);
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setMounted(true);
+    }, []);
     if (!mounted) return null;
 
     const isEmpty = likedTracks.length === 0 && savedPlaylists.length === 0;

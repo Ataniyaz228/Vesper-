@@ -12,8 +12,8 @@ import { AmbientBackground } from "@/components/ui/AmbientBackground";
 export function ClientBackgroundHydrator() {
     const currentTrack = usePlayerStore((s) => s.currentTrack);
     const [mounted, setMounted] = useState(false);
-
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
     }, []);
 

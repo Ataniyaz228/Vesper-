@@ -193,7 +193,10 @@ export const FullScreenPlayer = () => {
 
     // Reset visibility state when closed
     useEffect(() => {
-        if (!isFullScreenPlayerOpen) setIsFullyVisible(false);
+        let isM = true;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (!isFullScreenPlayerOpen && isM) setIsFullyVisible(false);
+        return () => { isM = false; };
     }, [isFullScreenPlayerOpen]);
 
     return (

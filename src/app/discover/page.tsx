@@ -1,5 +1,5 @@
 // Server Component — fully dynamic, NO hardcoded artists
-import { searchMusic } from "@/lib/youtube";
+import { searchMusic, Track } from "@/lib/youtube";
 import { DiscoverClientView } from "./DiscoverClientView";
 
 // Cinematic color palettes assigned by slot, not by artist
@@ -12,7 +12,7 @@ const COLOR_PALETTES = [
 ];
 
 export default async function DiscoverPage() {
-    let tracks: any[] = [];
+    let tracks: (Track & { color1: string; color2: string; bgGradient: string })[] = [];
 
     try {
         // Fetch the 10 most-viewed music videos and take the first 5 with valid thumbnails.
@@ -20,9 +20,9 @@ export default async function DiscoverPage() {
         const fetched = await searchMusic("official music video", "viewCount", 10);
 
         tracks = fetched
-            .filter((t: any) => t.albumImageUrl)
+            .filter((t: Track) => t.albumImageUrl)
             .slice(0, 5)
-            .map((t: any, i: number) => ({
+            .map((t: Track, i: number) => ({
                 ...t,
                 ...COLOR_PALETTES[i % COLOR_PALETTES.length],
             }));

@@ -6,10 +6,14 @@ import { Environment, Float, PresentationControls, useTexture, RoundedBox, MeshT
 import * as THREE from "three";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 
-const SceneContent = ({ activeTrack }: { activeTrack: any }) => {
+const SceneContent = ({ activeTrack }: { activeTrack: { coverUrl?: string, color1?: string, color2?: string } }) => {
     const groupRef = useRef<THREE.Group>(null);
-    const texture = useTexture(activeTrack.coverUrl as string) as THREE.Texture;
-    texture.colorSpace = THREE.SRGBColorSpace;
+    const textureBase = useTexture(activeTrack.coverUrl as string) as THREE.Texture;
+    const texture = React.useMemo(() => {
+        const cloned = textureBase.clone();
+        cloned.colorSpace = THREE.SRGBColorSpace;
+        return cloned;
+    }, [textureBase]);
 
     // Slight continuous movement
     useFrame((state) => {
@@ -74,7 +78,6 @@ const SceneContent = ({ activeTrack }: { activeTrack: any }) => {
 
                         {/* 3. The Heavy Glass/Acrylic Card Enclosing the Cover */}
                         <RoundedBox args={[3.1, 3.1, 0.15]} radius={0.05} smoothness={16} position={[0, 0, 0]}>
-                            {/* @ts-ignore */}
                             <MeshTransmissionMaterial
                                 thickness={0.5}
                                 roughness={0.05}
@@ -99,7 +102,7 @@ const SceneContent = ({ activeTrack }: { activeTrack: any }) => {
     );
 };
 
-export default function PremiumGlassCard({ activeTrack }: { activeTrack: any }) {
+export default function PremiumGlassCard({ activeTrack }: { activeTrack: { coverUrl?: string, color1?: string, color2?: string } }) {
     return (
         <div className="w-full h-full absolute inset-0 pointer-events-auto">
             <Canvas camera={{ position: [0, 0, 6], fov: 40 }} dpr={[1, 2]}>
@@ -115,9 +118,8 @@ export default function PremiumGlassCard({ activeTrack }: { activeTrack: any }) 
                 </React.Suspense>
 
                 {/* Soft diffused bloom for the cinematic atmosphere */}
-                {/* @ts-ignore */}
+                {/* @ts-expect-error */}
                 <EffectComposer disableNormalPass>
-                    {/* @ts-ignore */}
                     <Bloom luminanceThreshold={0.5} mipmapBlur intensity={1.2} />
                 </EffectComposer>
             </Canvas>

@@ -12,9 +12,7 @@ import { Playlist, Track } from "@/lib/youtube";
 
 const NOISE = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
 
-function cleanTitle(raw: string) {
-    return raw.replace(/\s*[-–|]\s*(official|video|audio|lyrics|youtube).*$/i, "").replace(/\s*[\[\(].*?[\]\)]/g, "").trim();
-}
+import { cleanTitle } from "@/lib/utils";
 
 
 // ── Single track row ──────────────────────────────────────────────
@@ -79,8 +77,10 @@ export function PlaylistClientView({ playlist }: { playlist: Playlist }) {
     const heroRef = useRef<HTMLDivElement>(null);
 
     const [mounted, setMounted] = useState(false);
-    useEffect(() => setMounted(true), []);
-
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setMounted(true);
+    }, []);
     const { scrollY } = useScroll();
     // Header parallax: image moves up as you scroll
     const imgY = useSpring(useTransform(scrollY, [0, 400], [0, -80]), { stiffness: 80, damping: 20 });

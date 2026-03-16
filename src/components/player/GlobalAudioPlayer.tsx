@@ -6,25 +6,14 @@ import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Heart } from "luc
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { useMetadataStore } from "@/store/useMetadataStore";
-import { AuraTrackImage } from "@/components/ui/AuraTrackImage";
+
 import { MiniWave } from "@/components/ui/MiniWave";
-import { cn } from "@/lib/utils";
+import { cn, cleanTitle } from "@/lib/utils";
 
 // ── Helpers ──────────────────────────────────────────────────────
 function formatTime(s: number) {
     if (isNaN(s) || s < 0) return "0:00";
     return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-}
-
-function cleanTitle(raw: string) {
-    return raw
-        // strip emoji
-        .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}]/gu, "")
-        // strip junk after dash / pipe
-        .replace(/\s*[-–~|]\s*(official|video|audio|lyrics|music video|top hits|top songs|trending|playlist|songs|\d{4}).*$/i, "")
-        // strip brackets
-        .replace(/\s*[\[\(].*?[\]\)]/g, "")
-        .trim() || raw.slice(0, 48);
 }
 
 function AmbientGlow({ imageUrl }: { imageUrl?: string }) {
@@ -78,7 +67,7 @@ export const GlobalAudioPlayer = () => {
             }
         };
         fetchArt();
-    }, [currentTrack?.id, setTrackArt]);
+    }, [currentTrack, setTrackArt]);
 
     const [localProg, setLocalProg] = useState(progress);
     const [isDrag, setIsDrag] = useState(false);
@@ -87,7 +76,13 @@ export const GlobalAudioPlayer = () => {
     const barRef = useRef<HTMLDivElement>(null);
     const volTout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-    useEffect(() => { if (!isDrag) setLocalProg(progress); }, [progress, isDrag]);
+    useEffect(() => {
+        let isMount = true;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (!isDrag && isMount) setLocalProg(progress);
+        return () => { isMount = false; }
+    }, [progress, isDrag]);
 
     const pct = duration ? Math.min(100, (localProg / duration) * 100) : 0;
 
@@ -189,7 +184,10 @@ export const GlobalAudioPlayer = () => {
                         </motion.button>
 
                         <button
-                            onClick={(e) => { e.stopPropagation(); currentTrack && toggleLikeTrack(currentTrack); }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (currentTrack) toggleLikeTrack(currentTrack);
+                            }}
                             className="ml-1 group"
                         >
                             <Heart
