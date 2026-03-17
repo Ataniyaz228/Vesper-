@@ -93,7 +93,7 @@ export function NowPlayingEditorial({ onDiscover }: { onDiscover: () => void }) 
                     {/* CTA */}
                     <motion.button onClick={onDiscover}
                         whileHover={{ x: 4 }} transition={{ type: "spring", stiffness: 300, damping: 24 }}
-                        className="flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white/35 hover:text-white/70 transition-colors w-fit group mt-1">
+                        className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-[0.14em] text-white/35 hover:text-white/70 transition-colors w-fit group mt-1">
                         Open Discover
                         <div className="w-6 h-6 rounded-full border border-white/12 flex items-center justify-center group-hover:border-white/40 transition-colors">
                             <ArrowRight className="w-3 h-3" />

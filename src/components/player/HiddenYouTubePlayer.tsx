@@ -19,6 +19,7 @@ export const HiddenYouTubePlayer = () => {
 
     const [player, setPlayer] = useState<YouTubePlayer | null>(null);
     const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const initializedRef = useRef(false);
 
     const [isMounted, setIsMounted] = useState(false);
     useEffect(() => {
@@ -28,7 +29,7 @@ export const HiddenYouTubePlayer = () => {
 
     useEffect(() => {
         if (player) {
-            try { player.setVolume(volume * 100); } catch { }
+            try { player.setVolume(volume * 100); } catch { /* YouTube IFrame API not ready — safe to ignore */ }
         }
     }, [volume, player]);
 
@@ -37,7 +38,7 @@ export const HiddenYouTubePlayer = () => {
             try {
                 player.seekTo(seekTarget, true);
                 clearSeekTarget();
-            } catch { }
+            } catch { /* YouTube IFrame API not ready — safe to ignore */ }
         }
     }, [seekTarget, player, clearSeekTarget]);
 
@@ -49,7 +50,7 @@ export const HiddenYouTubePlayer = () => {
                 } else {
                     player.pauseVideo();
                 }
-            } catch { }
+            } catch { /* YouTube IFrame API not ready — safe to ignore */ }
         }
     }, [isPlaying, player, currentTrack]);
 
@@ -59,7 +60,7 @@ export const HiddenYouTubePlayer = () => {
                 try {
                     const time = await player.getCurrentTime();
                     setProgress(time);
-                } catch { }
+                } catch { /* YouTube IFrame API not ready — safe to ignore */ }
             }, 500);
         } else {
             if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
@@ -74,8 +75,11 @@ export const HiddenYouTubePlayer = () => {
         setIsLoading(false);
         try {
             event.target.setVolume(volume * 100);
-            if (isPlaying) event.target.playVideo();
-        } catch { }
+            if (isPlaying && !initializedRef.current) {
+                event.target.playVideo();
+            }
+            initializedRef.current = true;
+        } catch { /* YouTube IFrame API not ready — safe to ignore */ }
     };
 
     const onStateChange: YouTubeProps['onStateChange'] = (event) => {
@@ -91,7 +95,7 @@ export const HiddenYouTubePlayer = () => {
             if (event.data === 0) {
                 nextTrack();
             }
-        } catch { }
+        } catch { /* YouTube IFrame API not ready — safe to ignore */ }
     };
 
     if (!isMounted || !currentTrack) return null;

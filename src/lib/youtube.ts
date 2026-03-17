@@ -32,15 +32,62 @@ export type Album = Playlist;
 // -----------------------------------------------------------------------------
 // YOUTUBE DATA API CONFIG
 // -----------------------------------------------------------------------------
-const getApiKey = () => {
-    const apiKey = process.env.YOUTUBE_API_KEY;
-    if (!apiKey) {
-        throw new Error("Missing YOUTUBE_API_KEY environment variable.");
+const getApiKeys = (): string[] => {
+    // Load primary key and any backups (YOUTUBE_API_KEY_2, YOUTUBE_API_KEY_3, etc.)
+    const keys = [];
+    if (process.env.YOUTUBE_API_KEY) keys.push(process.env.YOUTUBE_API_KEY);
+    if (process.env.YOUTUBE_API_KEY_2) keys.push(process.env.YOUTUBE_API_KEY_2);
+    if (process.env.YOUTUBE_API_KEY_3) keys.push(process.env.YOUTUBE_API_KEY_3);
+
+    if (keys.length === 0) {
+        throw new Error("Missing YOUTUBE_API_KEY environment variable. Need at least one key.");
     }
-    return apiKey;
+    return keys;
 };
 
 const BASE_URL = "https://www.googleapis.com/youtube/v3";
+
+// Maintain current working key index in memory (best-effort across hot reloads)
+let currentKeyIndex = 0;
+
+/**
+ * Intelligent fetch wrapper that tries multiple API keys if the current one hits a Quota (403) or Rate Limit (429)
+ */
+async function fetchWithFallback(url: URL, init?: RequestInit): Promise<Response> {
+    const keys = getApiKeys();
+    let lastResponse: Response | null = null;
+
+    for (let attempts = 0; attempts < keys.length; attempts++) {
+        const testIndex = (currentKeyIndex + attempts) % keys.length;
+        const testKey = keys[testIndex];
+
+        // Attach the key we are testing
+        url.searchParams.set("key", testKey);
+
+        const response = await fetch(url.toString(), init);
+
+        if (response.ok) {
+            // Update global index so subsequent calls use this working key first
+            if (currentKeyIndex !== testIndex) {
+                console.info(`[YouTube API] Successfully switched to backup key at index ${testIndex}`);
+                currentKeyIndex = testIndex;
+            }
+            return response;
+        }
+
+        if (response.status === 403 || response.status === 429) {
+            console.warn(`[YouTube API] Key at index ${testIndex} failed (Status: ${response.status}). Trying next fallback key if available...`);
+            lastResponse = response;
+            continue; // Move to next iteration and try next key
+        }
+
+        // For other errors (400, 404, etc.), don't retry keys, just return the failure
+        return response;
+    }
+
+    // If all keys fail (e.g. all out of quota), return the last failed response to trigger mock data fallback
+    return lastResponse as Response;
+}
 
 // Helper to pull the best available thumbnail (16:9 ratio, to be cropped by UI)
 const getBestThumbnailUrl = (thumbnails: { maxres?: { url: string }, high?: { url: string }, medium?: { url: string }, default?: { url: string } }): string => {
@@ -54,7 +101,6 @@ const getBestThumbnailUrl = (thumbnails: { maxres?: { url: string }, high?: { ur
 // -----------------------------------------------------------------------------
 
 export const searchMusic = async (query: string, order: string = "relevance", maxResults: number = 20): Promise<Track[]> => {
-    const apiKey = getApiKey();
     const searchUrl = new URL(`${BASE_URL}/search`);
     searchUrl.searchParams.append("part", "snippet");
     searchUrl.searchParams.append("q", query);
@@ -62,16 +108,16 @@ export const searchMusic = async (query: string, order: string = "relevance", ma
     searchUrl.searchParams.append("videoCategoryId", "10"); // 10 = Music Category
     searchUrl.searchParams.append("maxResults", String(maxResults));
     searchUrl.searchParams.append("order", order);
-    searchUrl.searchParams.append("key", apiKey);
+    // Key will be appended inside fetchWithFallback
 
-    const response = await fetch(searchUrl.toString(), {
+    const response = await fetchWithFallback(searchUrl, {
         next: {
             revalidate: 3600, // Edge cache search queries for 1 hour to preserve quota
         },
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to search YouTube: ${response.statusText}`);
+        throw new Error(`[YouTube API] Search failed: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -88,28 +134,24 @@ export const searchMusic = async (query: string, order: string = "relevance", ma
         };
     });
 
-    // Enhancement: Return basic results fast by default.
-    // High-res art fetching is very slow for large lists.
     return tracks;
 };
 
 export const searchPlaylists = async (query: string): Promise<Playlist[]> => {
-    const apiKey = getApiKey();
     const searchUrl = new URL(`${BASE_URL}/search`);
     searchUrl.searchParams.append("part", "snippet");
     searchUrl.searchParams.append("q", query);
     searchUrl.searchParams.append("type", "playlist");
     searchUrl.searchParams.append("maxResults", "8");
-    searchUrl.searchParams.append("key", apiKey);
 
-    const response = await fetch(searchUrl.toString(), {
+    const response = await fetchWithFallback(searchUrl, {
         next: {
             revalidate: 3600, // Edge cache
         },
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to search YouTube playlists: ${response.statusText}`);
+        throw new Error(`[YouTube API] Playlist search failed: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -124,35 +166,30 @@ export const searchPlaylists = async (query: string): Promise<Playlist[]> => {
 };
 
 export const getPlaylistDetails = async (playlistId: string): Promise<Playlist> => {
-    const apiKey = getApiKey();
-
     // 1. Fetch playlist metadata
     const playlistUrl = new URL(`${BASE_URL}/playlists`);
     playlistUrl.searchParams.append("part", "snippet");
     playlistUrl.searchParams.append("id", playlistId);
-    playlistUrl.searchParams.append("key", apiKey);
 
     // 2. Fetch up to 50 playlist items
     const itemsUrl = new URL(`${BASE_URL}/playlistItems`);
     itemsUrl.searchParams.append("part", "snippet");
     itemsUrl.searchParams.append("playlistId", playlistId);
     itemsUrl.searchParams.append("maxResults", "50");
-    itemsUrl.searchParams.append("key", apiKey);
 
-    // Execute both requests in parallel for performance
+    // Execute both requests in parallel for performance using the fallback wrapper
     const [playlistRes, itemsRes] = await Promise.all([
-        fetch(playlistUrl.toString(), { next: { revalidate: 3600 } }),
-        fetch(itemsUrl.toString(), { next: { revalidate: 3600 } }),
+        fetchWithFallback(playlistUrl, { next: { revalidate: 3600 } }),
+        fetchWithFallback(itemsUrl, { next: { revalidate: 3600 } }),
     ]);
 
     if (!playlistRes.ok) {
-        throw new Error(`Failed to fetch playlist metadata: ${playlistRes.statusText}`);
+        throw new Error(`[YouTube API] Playlist details failed: ${playlistRes.status} ${playlistRes.statusText}`);
     }
 
     const playlistData = await playlistRes.json();
 
     // Items might return 404 for auto-generated radio mixes (RD...) or private lists.
-    // Instead of crashing the whole page, we gracefully handle it by defaulting to an empty array.
     let itemsData = { items: [] };
     if (itemsRes.ok) {
         itemsData = await itemsRes.json();
@@ -182,9 +219,6 @@ export const getPlaylistDetails = async (playlistId: string): Promise<Playlist> 
         };
     });
 
-    // Enhancement: Return basic metadata fast. 
-    // We remove the high-res iTunes enhancement from here because it slows down the initial page load 
-    // for playlists with many tracks. We will use YouTube thumbnails as base.
     return {
         id: playlistId,
         title: playlistSnippet.title,

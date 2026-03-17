@@ -57,7 +57,7 @@ export default function AuraPage() {
                     transition={{ duration: 1.1, repeat: Infinity, ease: "linear" }}
                     style={{ border: `1.5px solid rgba(255,255,255,0.12)`, borderTopColor: "rgba(255,255,255,0.45)" }}
                 />
-                <p className="mt-6 text-[10px] font-mono uppercase tracking-[0.28em] animate-pulse text-white/40">Compiling your vesper…</p>
+                <p className="mt-6 text-xs font-mono uppercase tracking-[0.28em] animate-pulse text-white/40">Compiling your vesper…</p>
             </div>
         );
     }
@@ -108,7 +108,7 @@ export default function AuraPage() {
         description: hasData
             ? `Built from your collective resonance and honest listening sessions.`
             : `Your sonic journey is just beginning. Start resonance to build your Vesper.`,
-        lastResonated: (data?.stats?.lastResonated as any) || null
+        lastResonated: (data?.stats?.lastResonated as unknown as { title: string; artist: string }) || null
     };
 
     const dnaData = data?.topGenres?.map((g: { name: string; count: number }) => ({
@@ -136,7 +136,7 @@ export default function AuraPage() {
                         </p>
                         <button
                             onClick={() => window.location.href = '/discover'}
-                            className="px-8 py-4 bg-white text-black rounded-full font-black uppercase tracking-widest text-[11px] hover:scale-105 active:scale-95 transition-all shadow-2xl"
+                            className="px-8 py-4 bg-white text-black rounded-full font-black uppercase tracking-widest text-xs hover:scale-105 active:scale-95 transition-all shadow-2xl"
                         >
                             Begin Exploration
                         </button>

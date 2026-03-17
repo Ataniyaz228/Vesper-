@@ -7,7 +7,7 @@ import { ChevronDown, Play, Pause, SkipBack, SkipForward, Heart, Volume2, Volume
 import { FastAverageColor } from "fast-average-color";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { AuraTrackImage } from "@/components/ui/AuraTrackImage";
-import { cn } from "@/lib/utils";
+import { cn, cleanTitle } from "@/lib/utils";
 
 function formatTime(s: number) {
     if (isNaN(s) || s < 0) return "0:00";
@@ -211,7 +211,7 @@ export const FullScreenPlayer = () => {
                     className="fixed inset-0 z-[100] text-white overflow-hidden flex flex-col font-sans bg-[#040405]"
                     style={{ willChange: "transform", contain: "strict" }}
                 >
-                    <AmbientBackground rgb={dominantColorRGB} title={currentTrack.title} />
+                    <AmbientBackground rgb={dominantColorRGB} title={cleanTitle(currentTrack.title)} />
 
                     {/* 1. Header */}
                     <motion.div
@@ -227,7 +227,7 @@ export const FullScreenPlayer = () => {
                             <ChevronDown className="w-5 h-5 text-white/50 group-hover:text-white transition-colors" />
                         </button>
                         <div className="flex flex-col items-center">
-                            <span className="text-[9px] font-bold tracking-[0.5em] uppercase text-white/20">Spatial Audio Mode</span>
+                            <span className="text-xs font-bold tracking-[0.5em] uppercase text-white/20">Spatial Audio Mode</span>
                         </div>
                         <div className="w-11" />
                     </motion.div>
@@ -249,9 +249,9 @@ export const FullScreenPlayer = () => {
                             className="flex flex-col items-center text-center max-w-4xl w-full"
                         >
                             <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl font-black tracking-tight leading-tight text-white line-clamp-1">
-                                {currentTrack.title}
+                                {cleanTitle(currentTrack.title)}
                             </h2>
-                            <p className="text-[10px] md:text-xs text-white/30 tracking-[0.2em] uppercase font-bold mt-2">
+                            <p className="text-xs md:text-xs text-white/30 tracking-[0.2em] uppercase font-bold mt-2">
                                 {currentTrack.artist}
                             </p>
                         </motion.div>
@@ -294,7 +294,7 @@ export const FullScreenPlayer = () => {
                             </div>
 
                             <div className="flex flex-col gap-2 flex-1 w-full order-1 md:order-2">
-                                <div className="flex justify-between items-center px-1 font-mono text-[9px] tracking-widest opacity-20">
+                                <div className="flex justify-between items-center px-1 font-mono text-xs tracking-widest opacity-20">
                                     <span>{formatTime(progress)}</span>
                                     <span>{formatTime(duration)}</span>
                                 </div>

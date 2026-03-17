@@ -6,7 +6,10 @@ import { GlobalAudioPlayer } from "@/components/player/GlobalAudioPlayer";
 import { FullScreenPlayer } from "@/components/player/FullScreenPlayer";
 import { HiddenYouTubePlayer } from "@/components/player/HiddenYouTubePlayer";
 import { Sidebar } from "@/components/layout/Sidebar";
-
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { PageTransition } from "@/components/layout/PageTransition";
+import { MagneticCursor } from "@/components/ui/MagneticCursor";
+import { MobileNav } from "@/components/layout/MobileNav";
 const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
@@ -41,9 +44,13 @@ export default function RootLayout({
           <Sidebar />
 
           {/* Layer 3: Main Scrollable Content Area */}
-          <main className="flex-1 h-[calc(100vh-3rem)] my-6 mr-6 overflow-y-auto pb-40 relative z-10 scroll-smooth rounded-[40px]">
+          <main className="flex-1 h-[calc(100vh-3rem)] my-6 mr-6 overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-40 relative z-10 scroll-smooth rounded-[40px]">
             <div className="max-w-7xl mx-auto w-full h-full relative">
-              {children}
+              <ErrorBoundary>
+                <PageTransition>
+                  {children}
+                </PageTransition>
+              </ErrorBoundary>
             </div>
           </main>
         </div>
@@ -53,8 +60,11 @@ export default function RootLayout({
 
         {/* Layer 5: Immersive Full Screen Player overlay */}
         <FullScreenPlayer />
+        <MobileNav />
 
+        <div className="hidden md:block"><MagneticCursor /></div>
       </body>
+
     </html>
   );
 }

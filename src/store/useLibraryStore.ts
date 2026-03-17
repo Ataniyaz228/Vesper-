@@ -124,6 +124,10 @@ export const useLibraryStore = create<LibraryState>()(
 
             clearLocal: () => {
                 set({ likedTracks: [], savedPlaylists: [] });
+                // Wipe persisted state entirely
+                if (typeof window !== "undefined") {
+                    localStorage.removeItem("aura-music-library");
+                }
             }
         }),
         {

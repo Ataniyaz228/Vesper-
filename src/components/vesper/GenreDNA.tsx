@@ -18,7 +18,7 @@ export function GenreDNA({ genres }: { genres: typeof AURA_DATA.genres }) {
                     <div className="flex flex-col gap-6">
                         {genres.map((g, i) => (
                             <div key={g.name} className="flex items-center gap-4">
-                                <span className="w-5 text-[10px] font-mono text-right shrink-0" style={{ color: T.dim }}>
+                                <span className="w-5 text-xs font-mono text-right shrink-0" style={{ color: T.dim }}>
                                     {String(i + 1).padStart(2, "0")}
                                 </span>
                                 <span className="w-40 md:w-56 text-sm font-medium shrink-0 truncate" style={{ color: T.text }}>
@@ -33,7 +33,7 @@ export function GenreDNA({ genres }: { genres: typeof AURA_DATA.genres }) {
                                         transition={{ duration: 1.2, delay: 0.08 * i, ease: "easeOut" }}
                                     />
                                 </div>
-                                <span className="w-8 text-right text-[10px] font-mono shrink-0" style={{ color: T.sub }}>
+                                <span className="w-8 text-right text-xs font-mono shrink-0" style={{ color: T.sub }}>
                                     {g.pct}%
                                 </span>
                             </div>

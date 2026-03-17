@@ -44,7 +44,7 @@ export function AuraCard({ identity, stats, genres }: { identity: { name: string
                 <h2 className="text-4xl md:text-5xl font-black tracking-tighter mt-4 italic uppercase" style={{ color: T.text }}>
                     The 2026 Artifact
                 </h2>
-                <p className="text-[10px] font-mono tracking-[0.2em] mt-4 opacity-30 uppercase">
+                <p className="text-xs font-mono tracking-[0.2em] mt-4 opacity-30 uppercase">
                     Model: Vesper-v1.0 // Auth: Approved
                 </p>
             </Rise>
@@ -112,9 +112,9 @@ export function AuraCard({ identity, stats, genres }: { identity: { name: string
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
                                         <div className="w-1.5 h-1.5 rounded-full bg-[#3affaa] shadow-[0_0_10px_#3affaa] animate-pulse" />
-                                        <span className="text-[9px] font-mono tracking-widest text-[#3affaa] uppercase">Live Channel</span>
+                                        <span className="text-xs font-mono tracking-widest text-[#3affaa] uppercase">Live Channel</span>
                                     </div>
-                                    <span className="block text-[10px] font-mono opacity-30 mt-1 uppercase tracking-tighter">Serial: VES-0026-{new Date().getFullYear()}</span>
+                                    <span className="block text-xs font-mono opacity-30 mt-1 uppercase tracking-tighter">Serial: VES-0026-{new Date().getFullYear()}</span>
                                 </div>
                                 <div className="p-2.5 rounded-xl border border-white/5 bg-white/5 backdrop-blur-sm">
                                     <Disc3 className="w-4 h-4 opacity-40 animate-spin-slow" />
@@ -181,7 +181,7 @@ export function AuraCard({ identity, stats, genres }: { identity: { name: string
                         className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-max"
                         style={{ transform: "translateZ(80px)" }}
                     >
-                        <button className="px-8 py-3 rounded-full bg-white text-black text-[10px] font-black uppercase tracking-widest hover:scale-110 active:scale-95 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
+                        <button className="px-8 py-3 rounded-full bg-white text-black text-xs font-black uppercase tracking-widest hover:scale-110 active:scale-95 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
                             Export Artifact
                         </button>
                     </motion.div>

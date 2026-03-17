@@ -28,18 +28,26 @@ function CoverShowcase({ items }: { items: (Track | Playlist)[] }) {
 
     return (
         <div ref={ref} className="absolute top-0 right-0 w-1/2 h-full opacity-40 pointer-events-none perspective-[1000px] flex items-center justify-end pr-20 overflow-hidden hide-scrollbar">
-            {images.map((src, i) => (
+            {images[0] && (
                 <motion.div
-                    key={i}
-                    style={{
-                        rotateY: yRotate, x: xMove,
-                        z: i * -200, scale: 1 - i * 0.1, marginLeft: i === 0 ? 0 : -300
-                    }}
-                    className="relative w-[400px] h-[400px] rounded-3xl overflow-hidden shrink-0 shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-white/5"
+                    className="absolute right-32 top-1/2 -translate-y-1/2 rounded-3xl overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-white/5"
+                    style={{ rotate: -6, scale: 0.88, zIndex: 1, width: 400, height: 400 }}
+                    animate={{ y: [0, -8, 0] }}
+                    transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
                 >
-                    {src && <img src={src} alt="" className="w-full h-full object-cover saturate-0 brightness-50" />}
+                    <img src={images[0]} alt="" className="w-full h-full object-cover saturate-0 brightness-50" />
                 </motion.div>
-            ))}
+            )}
+            {images[1] && (
+                <motion.div
+                    className="absolute right-16 top-1/2 -translate-y-1/2 rounded-3xl overflow-hidden border border-white/5"
+                    style={{ rotate: 4, zIndex: 2, boxShadow: "0 24px 64px rgba(0,0,0,0.7)", width: 400, height: 400 }}
+                    animate={{ y: [0, -12, 0] }}
+                    transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                >
+                    <img src={images[1]} alt="" className="w-full h-full object-cover saturate-0 brightness-50" />
+                </motion.div>
+            )}
         </div>
     );
 }
@@ -55,7 +63,7 @@ function CompactTrackRow({ track, index, isActive, isPlaying, isLoading, onClick
             className={`group flex items-center gap-4 px-4 py-2 cursor-pointer rounded-lg hover:bg-white/[0.04] transition-all border border-transparent ${isActive ? "bg-white/[0.06] border-white/5" : ""}`}
         >
             <div className="w-8 flex-shrink-0 flex justify-center items-center">
-                {isActive ? <MiniWave active={isPlaying && !isLoading} /> : <span className="text-[10px] tabular-nums font-bold text-white/20 group-hover:text-white/60 transition-colors">{index + 1}</span>}
+                {isActive ? <MiniWave active={isPlaying && !isLoading} /> : <span className="text-xs tabular-nums font-bold text-white/20 group-hover:text-white/60 transition-colors">{index + 1}</span>}
             </div>
             <div className="w-8 h-8 rounded-md overflow-hidden bg-white/5 flex-shrink-0">
                 <AuraTrackImage
@@ -66,7 +74,7 @@ function CompactTrackRow({ track, index, isActive, isPlaying, isLoading, onClick
             </div>
             <div className="flex-1 min-w-0">
                 <p className={`text-sm font-bold truncate ${isActive ? "text-white" : "text-white/80 group-hover:text-white"}`}>{track.title}</p>
-                <p className="text-[10px] text-white/30 uppercase tracking-tighter font-semibold truncate mt-0.5">{track.artist}</p>
+                <p className="text-xs text-white/30 uppercase tracking-tighter font-semibold truncate mt-0.5">{track.artist}</p>
             </div>
             <div className="flex items-center group-hover:opacity-100 opacity-0 transition-opacity">
                 <Heart className="w-3.5 h-3.5 fill-white text-white" />
@@ -160,7 +168,7 @@ function PlaylistBentoCard({ playlist, index, onClick }: { playlist: Playlist; i
             {/* Info overlays */}
             <div className="absolute inset-0 z-20 flex flex-col p-8 justify-between">
                 <div className="flex justify-between items-start">
-                    <span className="backdrop-blur-xl bg-white/10 border border-white/20 text-white/80 text-[9px] uppercase tracking-[0.3em] font-bold px-3 py-1.5 rounded-full">
+                    <span className="backdrop-blur-xl bg-white/10 border border-white/20 text-white/80 text-xs uppercase tracking-[0.3em] font-bold px-3 py-1.5 rounded-full">
                         Playlist
                     </span>
                     <div className="w-12 h-12 rounded-full backdrop-blur-2xl bg-white/10 border border-white/20 flex items-center justify-center opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
@@ -174,7 +182,7 @@ function PlaylistBentoCard({ playlist, index, onClick }: { playlist: Playlist; i
                     </h3>
                     <div className="flex items-center gap-2">
                         <div className="h-px w-4 bg-white/20" />
-                        <p className={`text-white/60 font-medium ${isLarge ? "text-sm max-w-sm" : "text-[10px]"} line-clamp-1`}>
+                        <p className={`text-white/60 font-medium ${isLarge ? "text-sm max-w-sm" : "text-xs"} line-clamp-1`}>
                             {playlist.tracks?.length || 0} tracks • Curated for you
                         </p>
                     </div>
@@ -210,7 +218,7 @@ function PlaylistGridCard({ playlist, index, onClick }: { playlist: Playlist; in
                 <h4 className="text-sm font-bold text-white group-hover:text-white/80 transition-colors truncate">
                     {cleanTitle(playlist.title)}
                 </h4>
-                <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">
+                <p className="text-xs text-white/40 uppercase tracking-widest font-bold">
                     {playlist.tracks?.length || 0} tracks
                 </p>
             </div>
@@ -296,7 +304,7 @@ export default function LibraryPage() {
                         <div className="relative z-10 max-w-7xl mx-auto w-full">
                             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
                                 className="flex flex-col">
-                                <span className="text-[10px] tracking-[0.5em] text-white/30 uppercase font-bold mb-6 ml-2 block border-l border-white/20 pl-4 py-1">
+                                <span className="text-xs tracking-[0.5em] text-white/30 uppercase font-bold mb-6 ml-2 block border-l border-white/20 pl-4 py-1">
                                     Your personal curation
                                 </span>
 
@@ -317,7 +325,7 @@ export default function LibraryPage() {
                                         <ListMusic className="w-6 h-6 text-white/40" />
                                         <motion.div
                                             initial={{ scale: 0 }} animate={{ scale: 1 }}
-                                            className="absolute -top-2 -right-3 px-1.5 py-0.5 rounded-md bg-white/10 border border-white/10 text-[9px] font-black text-white/40 tabular-nums"
+                                            className="absolute -top-2 -right-3 px-1.5 py-0.5 rounded-md bg-white/10 border border-white/10 text-xs font-black text-white/40 tabular-nums"
                                         >
                                             {filteredPlaylists.length}
                                         </motion.div>
@@ -391,7 +399,7 @@ export default function LibraryPage() {
                                     <Heart className="w-6 h-6 text-[#f43f5e]" />
                                     <motion.div
                                         initial={{ scale: 0 }} animate={{ scale: 1 }}
-                                        className="absolute -top-2 -right-3 px-1.5 py-0.5 rounded-md bg-white/10 border border-white/10 text-[9px] font-black text-white/60 tabular-nums"
+                                        className="absolute -top-2 -right-3 px-1.5 py-0.5 rounded-md bg-white/10 border border-white/10 text-xs font-black text-white/60 tabular-nums"
                                     >
                                         {filteredTracks.length}
                                     </motion.div>

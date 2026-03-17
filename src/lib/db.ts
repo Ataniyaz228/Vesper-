@@ -7,7 +7,6 @@ import { Pool, QueryResultRow } from "pg";
 
 declare global {
     // Allow global var to survive HMR without TS errors
-    // eslint-disable-next-line no-var
     var _pgPool: Pool | undefined;
 }
 
@@ -33,7 +32,7 @@ export const db: Pool =
  * Convenience helper — executes a parameterised query.
  * Automatically acquires + releases a client.
  */
-export async function query<T extends QueryResultRow = any>(
+export async function query<T extends QueryResultRow = QueryResultRow>(
     text: string,
     params?: unknown[]
 ) {

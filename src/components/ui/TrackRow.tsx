@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn, cleanTitle } from "@/lib/utils";
 import { Play, Heart } from "lucide-react";
 import { Track } from "@/lib/youtube";
 import { useLibraryStore } from "@/store/useLibraryStore";
@@ -50,9 +50,9 @@ export const TrackRow = React.forwardRef<HTMLDivElement, TrackRowProps>(
                             )}
                         />
                     </div>
-                    <div className="flex flex-col truncate">
+                    <div className="flex flex-col min-w-0 pr-4">
                         <span className={cn("text-base font-medium truncate", isActive && "font-semibold text-white")}>
-                            {title}
+                            {cleanTitle(title)}
                         </span>
                         <span className="text-sm text-foreground/60 truncate">
                             {artist}

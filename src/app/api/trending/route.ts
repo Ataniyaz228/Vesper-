@@ -3,7 +3,7 @@ import { searchPlaylists } from "@/lib/youtube";
 
 export async function GET() {
     try {
-        const playlists = await searchPlaylists("trending music hits 2024 album");
+        const playlists = await searchPlaylists(`trending music hits ${new Date().getFullYear()} album`);
         return NextResponse.json(playlists);
     } catch (error) {
         console.error(error);

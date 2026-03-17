@@ -1,7 +1,7 @@
 import React from "react";
 import Image from "next/image";
 import { Play } from "lucide-react";
-import { GlassCard } from "./GlassCard";
+import { Card } from "./Card";
 import { cn } from "@/lib/utils";
 
 interface AlbumCardProps {
@@ -14,8 +14,9 @@ interface AlbumCardProps {
 
 export const AlbumCard = ({ title, artist, imageUrl, onClick, className }: AlbumCardProps) => {
     return (
-        <GlassCard
+        <Card
             onClick={onClick}
+            variant="glass"
             className={cn(
                 "group p-3 cursor-pointer hover:bg-glass-surface/60 transition-all duration-300",
                 className
@@ -42,6 +43,6 @@ export const AlbumCard = ({ title, artist, imageUrl, onClick, className }: Album
                 <h3 className="font-semibold text-base truncate text-foreground/90">{title}</h3>
                 <p className="text-sm text-foreground/50 truncate mt-0.5">{artist}</p>
             </div>
-        </GlassCard>
+        </Card>
     );
 };

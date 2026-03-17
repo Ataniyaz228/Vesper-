@@ -9,6 +9,7 @@ import { useMetadataStore } from "@/store/useMetadataStore";
 
 import { MiniWave } from "@/components/ui/MiniWave";
 import { cn, cleanTitle } from "@/lib/utils";
+import Image from "next/image";
 
 // ── Helpers ──────────────────────────────────────────────────────
 function formatTime(s: number) {
@@ -22,9 +23,9 @@ function AmbientGlow({ imageUrl }: { imageUrl?: string }) {
             <motion.div key={imageUrl} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 transition={{ duration: 1.2 }} className="absolute inset-0 pointer-events-none overflow-hidden rounded-[32px]">
                 {imageUrl && (
-                    <img src={imageUrl} alt="" aria-hidden
-                        className="absolute object-cover opacity-20 blur-2xl saturate-200 scale-125"
-                        style={{ inset: "-20%" }} />
+                    <Image src={imageUrl} alt="" aria-hidden fill
+                        className="object-cover opacity-20 blur-2xl saturate-200 scale-125"
+                        unoptimized />
                 )}
             </motion.div>
         </AnimatePresence>
@@ -79,7 +80,6 @@ export const GlobalAudioPlayer = () => {
     useEffect(() => {
         let isMount = true;
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (!isDrag && isMount) setLocalProg(progress);
         return () => { isMount = false; }
     }, [progress, isDrag]);
@@ -129,7 +129,7 @@ export const GlobalAudioPlayer = () => {
                             className="relative w-11 h-11 rounded-xl overflow-hidden flex-shrink-0"
                             style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.07)" }}>
                             {currentTrack.albumImageUrl && (
-                                <img src={currentTrack.albumImageUrl} alt="" className="w-full h-full object-cover" />
+                                <Image src={currentTrack.albumImageUrl} alt="" fill className="object-cover" unoptimized />
                             )}
                         </motion.div>
                     </AnimatePresence>
@@ -139,13 +139,13 @@ export const GlobalAudioPlayer = () => {
                         <AnimatePresence mode="wait">
                             <motion.span key={currentTrack.id}
                                 initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-                                className="text-[13px] font-semibold text-white truncate leading-tight">
+                                className="text-sm font-semibold text-white truncate leading-tight">
                                 {cleanTitle(currentTrack.title)}
                             </motion.span>
                         </AnimatePresence>
                         <div className="flex items-center gap-2 mt-0.5">
                             <MiniWave active={isPlaying && !isLoading} />
-                            <span className="text-[11px] text-white/32 truncate">{currentTrack.artist}</span>
+                            <span className="text-xs text-white/32 truncate">{currentTrack.artist}</span>
                         </div>
                     </div>
 
@@ -203,7 +203,7 @@ export const GlobalAudioPlayer = () => {
 
                     {/* Time + Volume */}
                     <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
-                        <span className="text-[10px] font-mono text-white/22 tabular-nums whitespace-nowrap">
+                        <span className="text-xs font-mono text-white/22 tabular-nums whitespace-nowrap">
                             {formatTime(localProg)}<span className="mx-0.5 text-white/10">/</span>{formatTime(duration)}
                         </span>
 
@@ -218,8 +218,8 @@ export const GlobalAudioPlayer = () => {
                                     <motion.div
                                         initial={{ opacity: 0, y: 6, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 6, scale: 0.9 }}
                                         transition={{ duration: 0.18 }}
-                                        className="absolute bottom-full right-0 mb-3 px-4 py-3 rounded-2xl flex items-center gap-2.5 border border-white/8"
-                                        style={{ background: "rgba(16,16,20,0.97)", backdropFilter: "blur(32px)", boxShadow: "0 8px 32px rgba(0,0,0,0.7)", width: 148 }}
+                                        className="absolute bottom-full right-0 mb-3 px-4 py-3 rounded-2xl flex items-center gap-2.5 border border-white/8 backdrop-blur-2xl"
+                                        style={{ background: "rgba(16,16,20,0.97)", boxShadow: "0 8px 32px rgba(0,0,0,0.7)", width: 148 }}
                                         onMouseEnter={() => clearTimeout(volTout.current)}
                                         onMouseLeave={() => { volTout.current = setTimeout(() => setShowVol(false), 600); }}>
                                         <VolumeX className="w-3 h-3 text-white/20 flex-shrink-0" />

@@ -17,8 +17,14 @@ export function ChartRow({ track, index, active, onClick }: { track: Track; inde
             className="flex items-center gap-5 px-6 py-4 cursor-pointer group border-b border-white/[0.035] last:border-none hover:bg-white/[0.025] transition-colors"
         >
             {/* Big number */}
-            <span className="font-black tabular-nums flex-shrink-0 select-none transition-colors duration-300"
-                style={{ fontSize: "clamp(18px, 2.2vw, 28px)", letterSpacing: "-0.04em", color: active ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.1)" }}>
+            <span
+                className="text-[56px] font-black leading-none select-none pointer-events-none"
+                style={{
+                    color: "rgba(255,255,255,0.05)",
+                    fontVariantNumeric: "tabular-nums",
+                    letterSpacing: "-0.04em",
+                }}
+            >
                 {String(index + 1).padStart(2, "0")}
             </span>
             <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 ring-1 ring-white/[0.06]">
@@ -30,7 +36,7 @@ export function ChartRow({ track, index, active, onClick }: { track: Track; inde
             </div>
             <div className="flex flex-col min-w-0 flex-1">
                 <span className="text-white text-[12px] font-semibold truncate">{track.title}</span>
-                <span className="text-white/30 text-[10px] truncate mt-0.5">{track.artist}</span>
+                <span className="text-white/30 text-xs truncate mt-0.5">{track.artist}</span>
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
                 <Waveform active={active} />

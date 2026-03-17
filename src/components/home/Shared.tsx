@@ -19,7 +19,7 @@ export function Reveal({ children, delay = 0 }: { children: React.ReactNode; del
 export function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
     return (
         <div className="flex items-end px-8 gap-4 mb-7">
-            <div><span className="block text-[9px] tracking-[0.44em] text-white/14 uppercase font-semibold">{eyebrow}</span>
+            <div><span className="block text-xs tracking-[0.44em] text-white/14 uppercase font-semibold">{eyebrow}</span>
                 <h2 className="text-[16px] font-bold tracking-[-0.025em] text-white/85 mt-0.5">{title}</h2></div>
             <div className="flex-1 h-px bg-white/[0.05] mb-1" />
         </div>
@@ -50,7 +50,7 @@ export function Marquee({ items }: { items: string[] }) {
             <div className="absolute inset-y-0 right-0 w-20 z-10" style={{ background: "linear-gradient(to left, #0a0a0c, transparent)" }} />
             <motion.div animate={{ x: "-33.33%" }} transition={{ duration: 32, repeat: Infinity, ease: "linear" }} className="flex gap-10 w-max">
                 {doubled.map((name, i) => (
-                    <span key={i} className="text-white/10 text-[10px] uppercase tracking-[0.35em] font-semibold flex items-center gap-4">
+                    <span key={i} className="text-white/10 text-xs uppercase tracking-[0.35em] font-semibold flex items-center gap-4">
                         {name} <span className="w-[3px] h-[3px] rounded-full bg-white/10 inline-block" />
                     </span>
                 ))}

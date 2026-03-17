@@ -46,7 +46,7 @@ function ClusterCard({ title, desc, img, onClick }: { title: string, desc: strin
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="h-[1px] w-8 bg-white/20 group-hover:w-12 transition-all duration-700" />
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 group-hover:text-white transition-colors">{desc}</p>
+                    <p className="text-xs font-black uppercase tracking-[0.4em] text-white/40 group-hover:text-white transition-colors">{desc}</p>
                 </div>
             </div>
 
@@ -165,7 +165,7 @@ function FrequencyNodes({ onNavigate }: { onNavigate: (e: React.MouseEvent, q: s
     return (
         <div className="relative pt-32 pb-64 border-t border-white/5 overflow-hidden">
             <div className="px-6 lg:px-[10vw] mb-20 text-center md:text-left">
-                <motion.p initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} className="text-[11px] font-black tracking-[1em] text-white/10 uppercase mb-6">
+                <motion.p initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} className="text-xs font-black tracking-[1em] text-white/10 uppercase mb-6">
                     Continuity Protocol
                 </motion.p>
                 <div className="overflow-hidden">
@@ -213,9 +213,13 @@ function ExhibitionTrack({ track, index, allTracks }: { track: DiscoverTrack, in
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
             className={`relative w-full flex flex-col ${index % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"} gap-12 md:gap-24 mb-64 items-center`}
+            style={{ position: "relative", overflow: "visible" }}
         >
-            <div className="absolute -top-32 left-1/2 -translate-x-1/2 text-[30vw] font-black text-white/[0.015] select-none pointer-events-none uppercase italic leading-none z-0">
-                {track.title.charAt(0)}
+            <div
+                className="absolute -right-4 top-0 text-[clamp(60px,8vw,120px)] font-black text-white/[0.06] select-none pointer-events-none leading-none"
+                style={{ zIndex: 0 }}
+            >
+                {track.title.split(' ')[1] || track.title.substring(0, 2).toUpperCase()}
             </div>
 
             <div className="relative z-10 w-full md:w-1/2">
@@ -257,7 +261,7 @@ function ExhibitionTrack({ track, index, allTracks }: { track: DiscoverTrack, in
                 <div className="flex flex-wrap gap-4 items-center justify-center md:justify-start mt-4">
                     <button
                         onClick={() => playTrack(track, allTracks)}
-                        className="flex items-center gap-4 px-10 py-5 bg-white text-black rounded-full font-black uppercase tracking-widest text-[11px] hover:scale-105 active:scale-95 transition-all shadow-xl"
+                        className="flex items-center gap-4 px-10 py-5 bg-white text-black rounded-full font-black uppercase tracking-widest text-xs hover:scale-105 active:scale-95 transition-all shadow-xl"
                     >
                         {isActive ? "Resonating" : "Listen Vibration"}
                         <Disc className={`w-4 h-4 ${isActive ? "animate-spin" : ""}`} />
@@ -331,7 +335,7 @@ export function DiscoverClientView({ initialTracks }: { initialTracks: DiscoverT
             </AnimatePresence>
 
             {!initialTracks || initialTracks.length === 0 ? (
-                <div className="h-screen w-full flex items-center justify-center text-white/50 text-[10px] font-black uppercase tracking-widest bg-[#060608]">
+                <div className="h-screen w-full flex items-center justify-center text-white/50 text-xs font-black uppercase tracking-widest bg-[#060608]">
                     Awaiting Transmission...
                 </div>
             ) : (
@@ -342,7 +346,7 @@ export function DiscoverClientView({ initialTracks }: { initialTracks: DiscoverT
 
                     <section className="relative h-screen flex flex-col justify-center px-6 lg:px-12 perspective-[1500px]">
                         <div className="relative z-10 pointer-events-none">
-                            <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-[11px] font-black tracking-[0.8em] text-white/20 uppercase mb-8">
+                            <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-xs font-black tracking-[0.8em] text-white/20 uppercase mb-8">
                                 Acoustic Archive
                             </motion.p>
                             <motion.h1

@@ -17,7 +17,7 @@ export function Stats({ data }: { data: typeof AURA_DATA.stats }) {
                     <Rise key={s.id} delay={0.08 * i}>
                         <Card className="p-7 h-[200px] md:h-[220px] flex flex-col justify-between group cursor-default">
                             {/* Top label */}
-                            <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color: T.sub }}>
+                            <span className="text-xs font-mono uppercase tracking-widest" style={{ color: T.sub }}>
                                 {String(i + 1).padStart(2, "0")} · {s.label}
                             </span>
 

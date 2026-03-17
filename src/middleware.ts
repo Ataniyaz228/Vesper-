@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { jwtVerify } from "jose";
 
 // Routes that require authentication
 const PROTECTED_ROUTES = ["/library", "/vesper", "/discover"];
@@ -8,18 +9,32 @@ const PROTECTED_ROUTES = ["/library", "/vesper", "/discover"];
 const AUTH_ROUTES = ["/login", "/register"];
 
 const COOKIE_NAME = "aura_session";
+const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
 
-export function middleware(request: NextRequest) {
+async function isValidToken(token: string): Promise<boolean> {
+    try {
+        await jwtVerify(token, secret);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const token = request.cookies.get(COOKIE_NAME)?.value;
-    const isAuthenticated = Boolean(token);
+    const isAuthenticated = token ? await isValidToken(token) : false;
 
     // If trying to access protected routes without auth → redirect to login
     const isProtected = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
     if (isProtected && !isAuthenticated) {
         const loginUrl = new URL("/login", request.url);
         loginUrl.searchParams.set("from", pathname);
-        return NextResponse.redirect(loginUrl);
+        const response = NextResponse.redirect(loginUrl);
+        if (token) {
+            response.cookies.delete(COOKIE_NAME);
+        }
+        return response;
     }
 
     // If trying to access auth routes while already logged in → redirect to home

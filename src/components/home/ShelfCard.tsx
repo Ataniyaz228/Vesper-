@@ -24,7 +24,7 @@ export function ShelfCard({ item, index, onClick }: { item: Playlist; index: num
             whileHover={{ scale: 1.05, transition: { type: "spring", stiffness: 280, damping: 24 } }}
             className="cursor-pointer group relative"
         >
-            <div className="absolute -top-6 left-0 text-[10px] font-black text-white/10 tabular-nums select-none">{String(index + 1).padStart(2, "0")}</div>
+            <div className="absolute -top-6 left-0 text-xs font-black text-white/10 tabular-nums select-none">{String(index + 1).padStart(2, "0")}</div>
             <div className="absolute -bottom-4 left-[14%] right-[14%] h-6 pointer-events-none opacity-0 group-hover:opacity-55 transition-opacity duration-500"
                 style={{ background: "rgba(100,60,200,0.5)", filter: "blur(14px)", borderRadius: "50%" }} />
             <div className="relative bg-[#0e0e0e]"
@@ -37,7 +37,7 @@ export function ShelfCard({ item, index, onClick }: { item: Playlist; index: num
                 <motion.div className="absolute inset-0 mix-blend-soft-light opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                     style={{ background: `radial-gradient(circle at ${gX} ${gY}, rgba(255,255,255,0.42) 0%, transparent 58%)` }} />
                 <div className="absolute bottom-0 left-0 right-0 px-3 pb-3 z-10">
-                    <p className="text-white text-[11px] font-semibold line-clamp-2 leading-[1.3]">{cleanTitle(item.title)}</p>
+                    <p className="text-white text-xs font-semibold line-clamp-2 leading-[1.3]">{cleanTitle(item.title)}</p>
                 </div>
                 <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-200 scale-50 group-hover:scale-100">
                     <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-xl">
@@ -46,7 +46,7 @@ export function ShelfCard({ item, index, onClick }: { item: Playlist; index: num
                 </div>
             </div>
             <div className="mt-2.5 px-0.5" style={{ width: w }}>
-                <p className="text-white/25 text-[10px] font-medium line-clamp-1">{cleanTitle(item.title)}</p>
+                <p className="text-white/25 text-xs font-medium line-clamp-1">{cleanTitle(item.title)}</p>
             </div>
         </motion.div>
     );

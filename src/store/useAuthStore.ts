@@ -3,6 +3,7 @@
  * Syncs with /api/auth/me on boot, exposes login/register/logout actions.
  */
 import { create } from "zustand";
+import { useLibraryStore } from "./useLibraryStore";
 
 interface AuthUser {
     userId: number;
@@ -29,6 +30,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             if (res.ok) {
                 const data = await res.json();
                 set({ user: data.user, loading: false });
+                useLibraryStore.getState().sync();
             } else {
                 set({ user: null, loading: false });
             }
@@ -46,6 +48,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         const data = await res.json();
         if (!res.ok) return data.error ?? "Login failed.";
         set({ user: data.user });
+        useLibraryStore.getState().sync();
         return null;
     },
 
@@ -58,11 +61,13 @@ export const useAuthStore = create<AuthState>((set) => ({
         const data = await res.json();
         if (!res.ok) return data.error ?? "Registration failed.";
         set({ user: data.user });
+        useLibraryStore.getState().sync();
         return null;
     },
 
     logout: async () => {
         await fetch("/api/auth/logout", { method: "POST" });
         set({ user: null });
+        useLibraryStore.getState().clearLocal();
     },
 }));

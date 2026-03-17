@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Music2, ChevronRight } from "lucide-react";
-import { AURA_DATA, T, Rise, Label, Sep } from "@/components/vesper/Shared";
+import { T, Rise, Label, Sep } from "@/components/vesper/Shared";
+import { cleanTitle } from "@/lib/utils";
 
 export function TrackList({ tracks }: { tracks: { id: string | number; title: string; artist: string; dur: string; img: string; }[] }) {
     const [hover, setHover] = useState<number | string | null>(null);
@@ -53,7 +54,7 @@ export function TrackList({ tracks }: { tracks: { id: string | number; title: st
                                                 animate={{ x: on ? 4 : 0 }}
                                                 transition={{ type: "spring", stiffness: 400, damping: 28 }}
                                                 className="font-semibold text-base md:text-lg truncate" style={{ color: T.text }}
-                                            >{t.title}</motion.p>
+                                            >{cleanTitle(t.title)}</motion.p>
                                             <motion.p
                                                 animate={{ x: on ? 4 : 0 }}
                                                 transition={{ type: "spring", stiffness: 400, damping: 28, delay: 0.02 }}

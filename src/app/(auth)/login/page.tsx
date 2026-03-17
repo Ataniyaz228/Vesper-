@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
+import { NOISE_URL } from "@/lib/constants";
 
 // ── Depth Overlay & Cinematic Background ──────────────────────────────────────
 function CinematicBackground() {
@@ -31,9 +32,7 @@ function CinematicBackground() {
                 {/* Noise overlay */}
                 <div
                     className="absolute inset-0 mix-blend-overlay opacity-[0.04]"
-                    style={{
-                        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-                    }}
+                    style={{ backgroundImage: NOISE_URL }}
                 />
             </div>
 
@@ -71,13 +70,13 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 function GlassInput({ label, suffix, ...props }: InputProps) {
     return (
         <div className="flex flex-col gap-2 w-full text-left">
-            <label className="text-[11px] font-semibold text-white/50 uppercase tracking-widest pl-1">
+            <label className="text-xs font-semibold text-white/50 uppercase tracking-widest pl-1">
                 {label}
             </label>
             <div className="relative">
                 <input
                     {...props}
-                    className={`w-full bg-white/[0.03] text-white text-[15px] placeholder:text-white/20 px-4 py-3.5 rounded-2xl outline-none transition-all duration-300 border border-white/10 focus:border-white/30 focus:bg-white/[0.06] ${suffix ? 'pr-12' : ''}`}
+                    className={`w-full bg-white/[0.03] text-white text-sm placeholder:text-white/20 px-4 py-3.5 rounded-2xl outline-none transition-all duration-300 border border-white/10 focus:border-white/30 focus:bg-white/[0.06] ${suffix ? 'pr-12' : ''}`}
                 />
                 {suffix && (
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors flex items-center justify-center">
@@ -156,7 +155,7 @@ export default function LoginPage() {
                     <div className="relative w-full">
                         {/* Header */}
                         <div className="mb-10 w-full">
-                            <span className="block text-[10px] md:text-[11px] tracking-[0.35em] uppercase font-bold text-white/30 mb-3 ml-1">
+                            <span className="block text-xs md:text-xs tracking-[0.35em] uppercase font-bold text-white/30 mb-3 ml-1">
                                 Secure Access
                             </span>
                             <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-white leading-tight">
@@ -190,7 +189,7 @@ export default function LoginPage() {
                                     }
                                 />
                                 <div className="flex justify-end pr-1 pt-1">
-                                    <button type="button" className="text-[11px] font-semibold text-white/20 hover:text-white/40 transition-colors uppercase tracking-wider">
+                                    <button type="button" className="text-xs font-semibold text-white/20 hover:text-white/40 transition-colors uppercase tracking-wider">
                                         Forgot?
                                     </button>
                                 </div>
@@ -222,7 +221,7 @@ export default function LoginPage() {
                         </form>
 
                         <div className="mt-10 pt-8 border-t border-white/5 w-full flex flex-col md:flex-row items-center justify-between gap-4">
-                            <p className="text-[13px] text-white/30 font-medium">
+                            <p className="text-sm text-white/30 font-medium">
                                 No account?{" "}
                                 <Link href="/register" className="text-white/60 hover:text-white transition-colors">
                                     Create one
@@ -240,7 +239,7 @@ export default function LoginPage() {
                     <img src="/pins/pin3.jpg" alt="" className="absolute inset-0 w-full h-full object-cover saturate-[1.2] opacity-40 group-hover:scale-110 group-hover:opacity-70 transition-all duration-1000" />
                     <div className="absolute inset-0 bg-[#050505]/20 backdrop-grayscale-[40%]" />
                     <div className="absolute bottom-6 left-6 right-6">
-                        <div className="text-[10px] font-mono text-white/30 uppercase tracking-[0.3em]">Sonic Space</div>
+                        <div className="text-xs font-mono text-white/30 uppercase tracking-[0.3em]">Sonic Space</div>
                     </div>
                 </motion.div>
 

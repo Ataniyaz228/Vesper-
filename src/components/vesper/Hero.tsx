@@ -77,7 +77,7 @@ export function Hero({ d, dna }: {
                     </div>
 
                     {d.lastResonated && (
-                        <p className="text-[9px] font-mono uppercase tracking-[0.25em] text-white/20">
+                        <p className="text-xs font-mono uppercase tracking-[0.25em] text-white/20">
                             Last Resonated: <span className="text-white/40">{d.lastResonated.title}</span>
                         </p>
                     )}
@@ -90,7 +90,7 @@ export function Hero({ d, dna }: {
                 transition={{ duration: 2.4, repeat: Infinity }}
                 className="absolute bottom-10 flex flex-col items-center gap-2"
             >
-                <span className="text-[9px] font-mono uppercase tracking-[0.3em]" style={{ color: T.sub }}>Scroll</span>
+                <span className="text-xs font-mono uppercase tracking-[0.3em]" style={{ color: T.sub }}>Scroll</span>
                 <ArrowDown className="w-4 h-4" style={{ color: T.dim }} />
             </motion.div>
         </section>

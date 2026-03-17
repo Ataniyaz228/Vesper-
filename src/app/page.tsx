@@ -7,6 +7,7 @@ import { TrackRow } from "@/components/ui/TrackRow";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Playlist, Track } from "@/lib/youtube";
+import { useAuthStore } from "@/store/useAuthStore";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function getGreeting() {
@@ -43,6 +44,9 @@ function HomeContent() {
   const [trending, setTrending] = useState<Track[]>([]);
   const [loadingShelf, setLoadingShelf] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const { user } = useAuthStore();
 
   const searchParams = useSearchParams();
 
@@ -51,7 +55,7 @@ function HomeContent() {
       try {
         const [trendingRes, searchRes] = await Promise.all([
           fetch("/api/trending"),
-          fetch("/api/search?q=top songs 2025 official video"),
+          fetch(`/api/search?q=top songs ${new Date().getFullYear()} official video`),
         ]);
         if (trendingRes.ok) { const d: Playlist[] = await trendingRes.json(); setHero(d[2] ?? d[0] ?? null); setShelf(d.filter((_, i) => i !== 2).slice(0, 8)); }
         if (searchRes.ok) { const t: Track[] = await searchRes.json(); setTrending(t.slice(0, 5)); }
@@ -67,6 +71,14 @@ function HomeContent() {
       doSearch(q);
     }
   }, [searchParams]);
+
+  const handleSearchChange = (value: string) => {
+    setQuery(value);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => doSearch(value), 450);
+  };
+
+  useEffect(() => () => clearTimeout(debounceRef.current), []);
 
   const doSearch = async (q: string) => {
     if (!q.trim()) { setResults([]); return; }
@@ -109,7 +121,7 @@ function HomeContent() {
           <AnimatePresence>
             {!searchOpen && (
               <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="text-[9px] tracking-[0.48em] text-white/22 uppercase font-semibold">{getGreeting()}
+                className="text-xs tracking-[0.48em] text-white/22 uppercase font-semibold">{getGreeting()}
               </motion.span>
             )}
           </AnimatePresence>
@@ -119,24 +131,24 @@ function HomeContent() {
                 <motion.form key="f" initial={{ opacity: 0, scaleX: 0.5, originX: 1 }} animate={{ opacity: 1, scaleX: 1 }} exit={{ opacity: 0, scaleX: 0.5 }}
                   transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                   onSubmit={(e) => { e.preventDefault(); doSearch(query); }}
-                  className="flex items-center gap-2.5 rounded-full px-4 py-2.5 border border-white/10"
-                  style={{ background: "rgba(255,255,255,0.07)", backdropFilter: "blur(28px)", width: "clamp(200px,28vw,380px)" }}>
+                  className="flex items-center gap-2.5 rounded-full px-4 py-2.5 border border-white/10 backdrop-blur-2xl"
+                  style={{ background: "rgba(255,255,255,0.07)", width: "clamp(200px,28vw,380px)" }}>
                   <Search className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />
                   <input ref={inputRef} value={query}
-                    onChange={(e) => { setQuery(e.target.value); doSearch(e.target.value); }}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                     placeholder="Songs, artists, playlists…"
-                    className="flex-1 bg-transparent text-[13px] text-white placeholder:text-white/22 focus:outline-none min-w-0" />
+                    className="flex-1 bg-transparent text-sm text-white placeholder:text-white/22 focus:outline-none min-w-0" />
                   <button type="button" onClick={closeSearch} className="text-white/22 hover:text-white/60 transition-colors flex-shrink-0"><X className="w-3.5 h-3.5" /></button>
                 </motion.form>
               ) : (
                 <motion.button key="i" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={openSearch}
-                  className="w-9 h-9 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"
-                  style={{ backdropFilter: "blur(16px)", background: "rgba(255,255,255,0.06)" }}>
+                  className="w-9 h-9 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all backdrop-blur-xl"
+                  style={{ background: "rgba(255,255,255,0.06)" }}>
                   <Search className="w-4 h-4 text-white/55" />
                 </motion.button>
               )}
             </AnimatePresence>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-[9px] font-bold tracking-widest cursor-pointer hover:scale-105 transition-transform flex-shrink-0">AT</div>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-xs font-bold tracking-widest cursor-pointer hover:scale-105 transition-transform flex-shrink-0">{user?.username.slice(0, 2).toUpperCase() ?? "??"}</div>
           </div>
         </div>
 
@@ -150,18 +162,18 @@ function HomeContent() {
                 <div className="flex items-center gap-2">
                   <motion.div className="w-1.5 h-1.5 rounded-full bg-white/40"
                     animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 2, repeat: Infinity }} />
-                  <span className="text-[9px] tracking-[0.46em] text-white/30 uppercase font-semibold">Featured</span>
+                  <span className="text-xs tracking-[0.46em] text-white/30 uppercase font-semibold">Featured</span>
                 </div>
                 <h1 className="font-black tracking-[-0.04em] leading-[1.03] text-white"
                   style={{ fontSize: "clamp(22px, 3.8vw, 56px)" }}>
                   {hero ? cleanTitle(hero.title) : "Your Music, Elevated"}
                 </h1>
-                <p className="text-white/30 text-[11px] max-w-[320px] leading-relaxed">
+                <p className="text-white/30 text-xs max-w-[320px] leading-relaxed">
                   Handpicked sounds from across the globe, renewed daily.
                 </p>
               </div>
               <button onClick={() => hero && router.push(`/playlist/${hero.id}`)}
-                className="flex items-center gap-2 text-[11px] font-bold px-6 py-3.5 rounded-full flex-shrink-0 bg-white text-black hover:scale-105 active:scale-95 transition-all"
+                className="flex items-center gap-2 text-xs font-bold px-6 py-3.5 rounded-full flex-shrink-0 bg-white text-black hover:scale-105 active:scale-95 transition-all"
                 style={{ boxShadow: "0 0 40px rgba(255,255,255,0.2)" }}>
                 <Play className="w-3 h-3 fill-current" />Listen
               </button>
@@ -178,17 +190,17 @@ function HomeContent() {
             {isSearching ? (
               <div className="flex justify-center py-14"><Loader2 className="w-5 h-5 animate-spin text-white/25" /></div>
             ) : results.length > 0 ? (
-              <div className="flex flex-col rounded-[22px] overflow-hidden border border-white/[0.04]"
-                style={{ background: "rgba(255,255,255,0.024)", backdropFilter: "blur(32px)" }}>
+              <div className="flex flex-col rounded-[22px] overflow-hidden border border-white/[0.04] backdrop-blur-3xl"
+                style={{ background: "rgba(255,255,255,0.024)" }}>
                 {results.map((t, i) => (
                   <TrackRow key={t.id} index={i + 1} track={t} title={t.title} artist={t.artist}
                     duration="--:--" isActive={currentTrack?.id === t.id} onClick={() => handlePlay(t, i)} />
                 ))}
               </div>
             ) : query.trim() ? (
-              <div className="flex justify-center py-14 text-white/18 text-[10px] tracking-widest uppercase">Nothing found</div>
+              <div className="flex justify-center py-14 text-white/18 text-xs tracking-widest uppercase">Nothing found</div>
             ) : (
-              <div className="flex justify-center py-14 text-white/10 text-[10px] tracking-widest uppercase">Start typing</div>
+              <div className="flex justify-center py-14 text-white/10 text-xs tracking-widest uppercase">Start typing</div>
             )}
           </motion.section>
         )}
@@ -230,8 +242,8 @@ function HomeContent() {
             <Reveal delay={0.04}>
               <div className="pt-16">
                 <SectionHeader eyebrow="Charts" title="Trending Right Now" />
-                <div className="mx-8 rounded-[22px] overflow-hidden border border-white/[0.04]"
-                  style={{ background: "rgba(255,255,255,0.022)", backdropFilter: "blur(24px)" }}>
+                <div className="mx-8 rounded-[22px] overflow-hidden border border-white/[0.04] backdrop-blur-2xl"
+                  style={{ background: "rgba(255,255,255,0.022)" }}>
                   {trending.length === 0 ? <div className="flex justify-center py-10"><Loader2 className="w-5 h-5 animate-spin text-white/20" /></div> : (
                     trending.map((t, i) => <ChartRow key={t.id} track={t} index={i} active={currentTrack?.id === t.id} onClick={() => playTrack(t, trending)} />)
                   )}

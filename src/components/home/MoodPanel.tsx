@@ -57,15 +57,15 @@ export function MoodPanel({ mood, onClick }: { mood: typeof MOODS[0]; onClick: (
             </div>
             {/* Content */}
             <div className="relative z-10 flex flex-col justify-end h-full p-5 pt-20">
-                <span className="text-[9px] tracking-[0.4em] font-semibold uppercase mb-1" style={{ color: mood.accent + "cc" }}>
+                <span className="text-xs tracking-[0.4em] font-semibold uppercase mb-1" style={{ color: mood.accent + "cc" }}>
                     {mood.label}
                 </span>
-                <p className="text-white font-bold text-[13px] leading-tight">
+                <p className="text-white font-bold text-sm leading-tight">
                     {mood.word === "DEEP" ? "Get in the zone" : mood.word === "MOVE" ? "Turn it up" : "Wind down"}
                 </p>
                 <motion.div className="flex items-center gap-1.5 mt-3"
                     animate={{ opacity: hovered ? 1 : 0, x: hovered ? 0 : -6 }} transition={{ duration: 0.35 }}>
-                    <span className="text-[10px] text-white/50 uppercase tracking-[0.2em]">Play now</span>
+                    <span className="text-xs text-white/50 uppercase tracking-[0.2em]">Play now</span>
                     <ArrowRight className="w-3 h-3 text-white/50" />
                 </motion.div>
             </div>

@@ -94,7 +94,7 @@ export function Sep({ className = "" }: { className?: string }) {
 // Section label pill
 export function Label({ children, className = "" }: { children: React.ReactNode; className?: string }) {
     return (
-        <span className={`inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.28em] px-3 py-1.5 rounded-full ${className}`}
+        <span className={`inline-flex items-center gap-2 text-xs font-mono uppercase tracking-[0.28em] px-3 py-1.5 rounded-full ${className}`}
             style={{ background: T.glass, color: T.sub, border: `1px solid ${T.border}` }}
         >{children}</span>
     );

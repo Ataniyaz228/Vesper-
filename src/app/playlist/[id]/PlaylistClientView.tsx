@@ -34,7 +34,7 @@ function Row({ track, index, isActive, isPlaying, isLoading, onClick }: {
                 {isActive ? (
                     <MiniWave active={isPlaying && !isLoading} />
                 ) : (
-                    <span className={`text-[11px] tabular-nums font-semibold transition-opacity ${isActive ? "text-white/80" : "text-white/18 group-hover:opacity-0"}`}>
+                    <span className={`text-xs tabular-nums font-semibold transition-opacity ${isActive ? "text-white/80" : "text-white/18 group-hover:opacity-0"}`}>
                         {String(index + 1).padStart(2, "0")}
                     </span>
                 )}
@@ -54,10 +54,10 @@ function Row({ track, index, isActive, isPlaying, isLoading, onClick }: {
 
             {/* Info */}
             <div className="flex flex-col min-w-0 flex-1">
-                <span className={`text-[13px] font-semibold truncate transition-colors ${isActive ? "text-white" : "text-white/80 group-hover:text-white"}`}>
-                    {track.title}
+                <span className={`text-sm font-semibold truncate transition-colors ${isActive ? "text-white" : "text-white/80 group-hover:text-white"}`}>
+                    {cleanTitle(track.title)}
                 </span>
-                <span className="text-white/30 text-[11px] truncate mt-0.5">{track.artist}</span>
+                <span className="text-white/30 text-xs truncate mt-0.5">{track.artist}</span>
             </div>
 
             {/* Active indicator bar */}
@@ -98,8 +98,8 @@ export function PlaylistClientView({ playlist }: { playlist: Playlist }) {
 
             {/* ══════════════ STICKY MINI HEADER ══════════════ */}
             <motion.div
-                className="fixed top-0 left-0 right-0 z-40 flex items-center gap-4 px-6 py-4 border-b border-white/[0.04]"
-                style={{ background: "rgba(10,10,12,0.85)", backdropFilter: "blur(32px)", y: miniHeaderY }}
+                className="fixed top-0 left-0 right-0 z-40 flex items-center gap-4 px-6 py-4 border-b border-white/[0.04] backdrop-blur-2xl"
+                style={{ background: "rgba(10,10,12,0.85)", y: miniHeaderY }}
             >
                 <button onClick={() => router.back()} className="w-8 h-8 rounded-full bg-white/6 flex items-center justify-center hover:bg-white/12 transition-all flex-shrink-0">
                     <ArrowLeft className="w-4 h-4 text-white/70" />
@@ -132,19 +132,19 @@ export function PlaylistClientView({ playlist }: { playlist: Playlist }) {
                 {/* Back button */}
                 <motion.button
                     onClick={() => router.back()}
-                    className="absolute top-6 left-6 z-10 w-9 h-9 rounded-full flex items-center justify-center border border-white/10 hover:bg-white/10 transition-all"
-                    style={{ background: "rgba(255,255,255,0.06)", backdropFilter: "blur(16px)", opacity: headerOpacity }}>
+                    className="absolute top-6 left-6 z-10 w-9 h-9 rounded-full flex items-center justify-center border border-white/10 hover:bg-white/10 transition-all backdrop-blur-xl"
+                    style={{ background: "rgba(255,255,255,0.06)", opacity: headerOpacity }}>
                     <ArrowLeft className="w-4 h-4 text-white/70" />
                 </motion.button>
 
                 {/* Hero text (bottom-left) */}
                 <motion.div style={{ opacity: headerOpacity }} className="absolute bottom-0 left-0 right-0 px-7 pb-8 z-10">
-                    <span className="text-[9px] tracking-[0.46em] text-white/30 uppercase font-semibold block mb-2">Playlist</span>
+                    <span className="text-xs tracking-[0.46em] text-white/30 uppercase font-semibold block mb-2">Playlist</span>
                     <h1 className="font-black tracking-[-0.04em] leading-[1.02] text-white line-clamp-3"
                         style={{ fontSize: "clamp(24px, 4.5vw, 62px)" }}>
                         {cleanTitle(playlist.title)}
                     </h1>
-                    <p className="text-white/25 text-[11px] mt-2 line-clamp-1 max-w-md">
+                    <p className="text-white/25 text-xs mt-2 line-clamp-1 max-w-md">
                         {playlist.description || `${playlist.tracks.length} tracks`}
                     </p>
                 </motion.div>
@@ -184,8 +184,8 @@ export function PlaylistClientView({ playlist }: { playlist: Playlist }) {
 
                 {/* Stats */}
                 <div className="flex-1 flex flex-col gap-0.5 min-w-0 pl-2">
-                    <span className="text-[10px] text-white/20 uppercase tracking-[0.3em] font-semibold">Tracks</span>
-                    <span className="text-[13px] text-white/50 font-bold">{playlist.tracks.length}</span>
+                    <span className="text-xs text-white/20 uppercase tracking-[0.3em] font-semibold">Tracks</span>
+                    <span className="text-sm text-white/50 font-bold">{playlist.tracks.length}</span>
                 </div>
             </div>
 
