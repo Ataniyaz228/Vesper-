@@ -5,6 +5,7 @@ import "./globals.css";
 import { GlobalAudioPlayer } from "@/components/player/GlobalAudioPlayer";
 import { FullScreenPlayer } from "@/components/player/FullScreenPlayer";
 import { HiddenYouTubePlayer } from "@/components/player/HiddenYouTubePlayer";
+import { QueuePanel } from "@/components/player/QueuePanel";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PageTransition } from "@/components/layout/PageTransition";
@@ -60,6 +61,9 @@ export default function RootLayout({
 
         {/* Layer 5: Immersive Full Screen Player overlay */}
         <FullScreenPlayer />
+
+        {/* Queue Panel */}
+        <QueuePanel />
         <MobileNav />
 
         <div className="hidden md:block"><MagneticCursor /></div>

@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { usePlayerStore } from "@/store/usePlayerStore";
-import { ChevronDown, Play, Pause, SkipBack, SkipForward, Heart, Volume2, VolumeX } from "lucide-react";
+import { ChevronDown, Play, Pause, SkipBack, SkipForward, Heart, Volume2, VolumeX, Mic2, ListPlus } from "lucide-react";
+import { AddToPlaylistPicker } from "@/components/playlists/AddToPlaylistPicker";
 import { FastAverageColor } from "fast-average-color";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { AuraTrackImage } from "@/components/ui/AuraTrackImage";
+import { SynchronizedLyrics } from "./SynchronizedLyrics";
 import { cn, cleanTitle } from "@/lib/utils";
 
 function formatTime(s: number) {
@@ -83,79 +85,7 @@ function AmbientBackground({ rgb, title }: { rgb: RGB, title: string }) {
     );
 }
 
-// 2. Central Floating Scene
-function FloatingScene({ imageUrl, trackId, rgb }: { imageUrl?: string, trackId: string, rgb: RGB }) {
-    const rx = useMotionValue(0);
-    const ry = useMotionValue(0);
-    const sx = useSpring(rx, { stiffness: 40, damping: 30 });
-    const sy = useSpring(ry, { stiffness: 40, damping: 30 });
 
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            rx.set((e.clientX / window.innerWidth - 0.5) * 6);
-            ry.set((e.clientY / window.innerHeight - 0.5) * -6);
-        };
-        window.addEventListener("mousemove", handleMouseMove);
-        return () => window.removeEventListener("mousemove", handleMouseMove);
-    }, [rx, ry]);
-
-    const fgX = useTransform(sx, [-6, 6], [-2, 2]);
-    const fgY = useTransform(sy, [-6, 6], [-2, 2]);
-
-    const shadowColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)`;
-    const coreShadowColor = `rgba(${Math.max(0, rgb.r - 40)}, ${Math.max(0, rgb.g - 40)}, ${Math.max(0, rgb.b - 40)}, 0.4)`;
-
-    return (
-        <div className="relative flex-[3] min-h-0 w-full flex items-center justify-center p-6 md:p-8">
-            <div className="relative h-full aspect-square">
-                <div
-                    className="absolute inset-[10%] rounded-full opacity-40 mix-blend-screen"
-                    style={{
-                        background: `radial-gradient(circle, ${shadowColor} 0%, transparent 80%)`,
-                        filter: "blur(80px)"
-                    }}
-                />
-
-                <motion.div
-                    style={{
-                        x: fgX,
-                        y: fgY,
-                        rotateX: sy,
-                        rotateY: sx,
-                        transformStyle: "preserve-3d",
-                        perspective: 1200,
-                        willChange: "transform"
-                    }}
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, ease: easeOutExpo, delay: 0.1 }}
-                    className="relative z-20 w-full h-full max-w-[65vh] max-h-[65vh] mx-auto"
-                >
-                    <div
-                        className="w-full h-full rounded-[36px] md:rounded-[56px] overflow-hidden relative ring-1 ring-white/10 bg-black shadow-2xl"
-                        style={{
-                            boxShadow: `0 40px 100px -20px ${coreShadowColor}`,
-                            isolation: "isolate"
-                        }}
-                    >
-                        {imageUrl ? (
-                            <AuraTrackImage
-                                trackId={trackId}
-                                fallbackUrl={imageUrl}
-                                className="w-full h-full object-cover"
-                            />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-white/5">
-                                <span className="text-white/10 text-4xl font-black">VESPER</span>
-                            </div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.02] via-transparent to-white/[0.04] pointer-events-none mix-blend-overlay" />
-                    </div>
-                </motion.div>
-            </div>
-        </div>
-    );
-}
 
 export const FullScreenPlayer = () => {
     const {
@@ -177,7 +107,10 @@ export const FullScreenPlayer = () => {
     const liked = currentTrack ? isTrackLiked(currentTrack.id) : false;
 
     const [hover, setHover] = useState(false);
+    const [showLyrics, setShowLyrics] = useState(false);
     const [isDrag, setIsDrag] = useState(false);
+    const [pickerOpen, setPickerOpen] = useState(false);
+    const [pickerAnchor, setPickerAnchor] = useState<DOMRect | undefined>(undefined);
     const barRef = useRef<HTMLDivElement>(null);
     const pct = duration ? Math.min(100, (progress / duration) * 100) : 0;
 
@@ -226,35 +159,108 @@ export const FullScreenPlayer = () => {
                         >
                             <ChevronDown className="w-5 h-5 text-white/50 group-hover:text-white transition-colors" />
                         </button>
-                        <div className="flex flex-col items-center">
-                            <span className="text-xs font-bold tracking-[0.5em] uppercase text-white/20">Spatial Audio Mode</span>
-                        </div>
-                        <div className="w-11" />
+                        <div />
+                        <button
+                            onClick={() => setShowLyrics(!showLyrics)}
+                            className={cn(
+                                "w-11 h-11 flex items-center justify-center rounded-full transition-all backdrop-blur-3xl shadow-lg border",
+                                showLyrics
+                                    ? "bg-white text-black border-white"
+                                    : "bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-white/50 hover:text-white"
+                            )}
+                        >
+                            <Mic2 className="w-5 h-5" />
+                        </button>
                     </motion.div>
 
-                    {/* 2. Content */}
-                    <FloatingScene
-                        imageUrl={currentTrack.albumImageUrl}
-                        trackId={currentTrack.id}
-                        rgb={dominantColorRGB}
-                    />
+                    {/* 2. Content — Cover + Title centrally placed */}
+                    <div className="relative flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden">
+                        {/* Left panel — Cover art */}
+                        <motion.div
+                            animate={{
+                                width: showLyrics ? "42%" : "100%",
+                                opacity: 1,
+                            }}
+                            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                            className="h-full flex flex-col items-center justify-center shrink-0 origin-center relative will-change-[width] gap-4 py-4 px-8 md:px-12"
+                        >
+                            {/* Album Cover */}
+                            <motion.div
+                                layout
+                                initial={false}
+                                animate={{
+                                    scale: showLyrics ? 0.88 : 1.02,
+                                    rotate: showLyrics ? -1.5 : 0,
+                                    y: showLyrics ? 0 : -4
+                                }}
+                                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                                className={cn(
+                                    "relative aspect-square shrink-0 rounded-[48px] overflow-hidden shadow-2xl",
+                                    "ring-1 ring-white/10 bg-[#0a0a0b]"
+                                )}
+                                style={{
+                                    height: "min(52vh, 520px)",
+                                    boxShadow: showLyrics
+                                        ? `0 20px 50px -10px rgba(0,0,0,0.5), 0 0 30px rgba(${dominantColorRGB.r},${dominantColorRGB.g},${dominantColorRGB.b}, 0.15)`
+                                        : `0 50px 120px -20px rgba(0,0,0,0.7), 0 20px 60px -10px rgba(${dominantColorRGB.r},${dominantColorRGB.g},${dominantColorRGB.b}, 0.3)`,
+                                    WebkitMaskImage: '-webkit-radial-gradient(white, black)'
+                                }}
+                            >
+                                <AuraTrackImage
+                                    trackId={currentTrack.id}
+                                    fallbackUrl={currentTrack.albumImageUrl}
+                                    className="w-full h-full object-cover select-none scale-[1.01]"
+                                />
+                                {/* 1. Premium Glass Material Overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.1] via-transparent to-transparent pointer-events-none z-10" />
+                                {/* 2. Dynamic Border Highlight (Top Left) */}
+                                <div className="absolute inset-0 rounded-[48px] border border-white/[0.08] pointer-events-none z-20" />
+                                {/* 3. Vignette/Depth */}
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05)_0%,transparent_50%)] pointer-events-none z-10" />
+                                {/* 4. Bottom Contrast Sink */}
+                                <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/20 to-transparent pointer-events-none z-10" />
+                            </motion.div>
+
+                            {/* Track Identity */}
+                            <motion.div
+                                animate={{ opacity: 1, y: 0 }}
+                                initial={{ opacity: 0, y: 10 }}
+                                transition={{ duration: 0.6, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                                className="flex flex-col items-center shrink-0"
+                            >
+                                <h2 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-tight text-white line-clamp-1">
+                                    {cleanTitle(currentTrack.title)}
+                                </h2>
+                                <p className="text-xs md:text-xs text-white/35 tracking-[0.2em] uppercase font-semibold mt-1.5">
+                                    {currentTrack.artist}
+                                </p>
+                            </motion.div>
+                        </motion.div>
+
+                        {/* Right panel — Lyrics (slides in from the right) */}
+                        <AnimatePresence>
+                            {showLyrics && (
+                                <motion.div
+                                    key="lyrics-panel"
+                                    initial={{ opacity: 0, x: 40, width: "0%" }}
+                                    animate={{ opacity: 1, x: 0, width: "60%" }}
+                                    exit={{ opacity: 0, x: 40, width: "0%" }}
+                                    transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+                                    className="h-full relative shrink-0"
+                                >
+                                    <SynchronizedLyrics
+                                        title={cleanTitle(currentTrack.title)}
+                                        artist={currentTrack.artist}
+                                        className="w-full h-full"
+                                    />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
 
                     {/* 3. Footer */}
-                    <div className="relative z-30 w-full flex flex-col items-center gap-4 md:gap-8 shrink-0 pb-10 md:pb-16 px-8">
-                        {/* Identity */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8, delay: 0.2 }}
-                            className="flex flex-col items-center text-center max-w-4xl w-full"
-                        >
-                            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl font-black tracking-tight leading-tight text-white line-clamp-1">
-                                {cleanTitle(currentTrack.title)}
-                            </h2>
-                            <p className="text-xs md:text-xs text-white/30 tracking-[0.2em] uppercase font-bold mt-2">
-                                {currentTrack.artist}
-                            </p>
-                        </motion.div>
+                    <div className="relative z-30 w-full flex flex-col items-center gap-4 md:gap-6 shrink-0 pt-4 pb-6 md:pt-6 md:pb-10 px-8">
+
 
                         {/* Player Console */}
                         <motion.div
@@ -291,6 +297,31 @@ export const FullScreenPlayer = () => {
                                         )}
                                     />
                                 </button>
+
+                                <button
+                                    onClick={(e) => {
+                                        setPickerAnchor(e.currentTarget.getBoundingClientRect());
+                                        setPickerOpen(p => !p);
+                                    }}
+                                    className={cn(
+                                        "p-2 rounded-full transition-all hover:scale-110 active:scale-90",
+                                        pickerOpen
+                                            ? "bg-white/12 text-white"
+                                            : "text-white/20 hover:text-white/50"
+                                    )}
+                                    title="Добавить в плейлист"
+                                >
+                                    <ListPlus className="w-6 h-6" />
+                                </button>
+
+                                {currentTrack && (
+                                    <AddToPlaylistPicker
+                                        track={currentTrack}
+                                        open={pickerOpen}
+                                        onClose={() => setPickerOpen(false)}
+                                        anchorRect={pickerAnchor}
+                                    />
+                                )}
                             </div>
 
                             <div className="flex flex-col gap-2 flex-1 w-full order-1 md:order-2">

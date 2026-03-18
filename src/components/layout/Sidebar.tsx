@@ -4,11 +4,13 @@ import React, { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, useMotionValue, useMotionTemplate } from "framer-motion";
-import { Home, Compass, Library, Disc, Sparkles, LogIn, LogOut, User } from "lucide-react";
+import { Home, Compass, Library, Disc, Sparkles, LogIn, LogOut, User, ListMusic, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { usePlayerStore } from "@/store/usePlayerStore";
+import { usePlaylistsStore } from "@/store/usePlaylistsStore";
+
 
 const NAV_LINKS = [
     { name: "Home", href: "/", icon: Home },
@@ -25,14 +27,21 @@ export const Sidebar = () => {
     const { user, logout, hydrate, loading } = useAuthStore();
     const { sync } = useLibraryStore();
     const { isPlaying } = usePlayerStore();
+    const { playlists, fetchPlaylists, createPlaylist } = usePlaylistsStore();
 
     // Hydrate auth state on mount
     useEffect(() => { hydrate(); }, [hydrate]);
 
     // Sync library when user is detected
     useEffect(() => {
-        if (user) sync();
-    }, [user, sync]);
+        if (user) { sync(); fetchPlaylists(); }
+    }, [user, sync, fetchPlaylists]);
+
+    const handleNewPlaylist = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        const pl = await createPlaylist();
+        if (pl) router.push(`/my-playlist/${pl.id}`);
+    };
 
     // Magnetic Spotlight Logic
     const sidebarRef = useRef<HTMLDivElement>(null);
@@ -139,6 +148,43 @@ export const Sidebar = () => {
                     );
                 })}
             </nav>
+
+            {/* ── Playlists section ── */}
+            {user && (
+                <div className="relative z-10 flex flex-col gap-1">
+                    <div className="flex items-center justify-between px-4 mb-1">
+                        <span className="text-[10px] font-semibold text-white/20 uppercase tracking-[0.18em]">Playlists</span>
+                        <button
+                            onClick={handleNewPlaylist}
+                            title="New playlist"
+                            className="p-1 rounded-lg text-white/20 hover:text-white/60 hover:bg-white/5 transition-all"
+                        >
+                            <Plus className="w-3 h-3" />
+                        </button>
+                    </div>
+
+                    {playlists.length === 0 ? (
+                        <p className="px-4 text-xs text-white/15 italic">No playlists yet</p>
+                    ) : (
+                        <div className="flex flex-col gap-[1px] max-h-48 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
+                            {playlists.map(pl => (
+                                <Link
+                                    key={pl.id}
+                                    href={`/my-playlist/${pl.id}`}
+                                    className={cn(
+                                        "flex items-center gap-3 px-4 py-2 rounded-xl transition-colors text-sm hover:bg-white/5",
+                                        pathname === `/my-playlist/${pl.id}` ? "bg-white/8 text-white" : "text-white/40"
+                                    )}
+                                >
+                                    <ListMusic className="w-4 h-4 shrink-0" />
+                                    <span className="truncate">{pl.title}</span>
+                                    <span className="ml-auto text-[10px] text-white/20">{pl.trackCount}</span>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div className="flex-1" />
 

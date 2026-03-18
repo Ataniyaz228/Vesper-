@@ -86,8 +86,56 @@ async function fetchWithFallback(url: URL, init?: RequestInit): Promise<Response
     }
 
     // If all keys fail (e.g. all out of quota), return the last failed response to trigger mock data fallback
+    if (!lastResponse) {
+        throw new Error("No YouTube API keys provided or all requests failed immediately.");
+    }
     return lastResponse as Response;
 }
+
+// -----------------------------------------------------------------------------
+// MOCK FALLBACK DATA (For when YouTube Quota is Expired)
+// -----------------------------------------------------------------------------
+
+export const MOCK_TRACKS: Track[] = [
+    {
+        id: "jfKfPfyJRdk",
+        title: "Starboy",
+        artist: "The Weeknd",
+        durationMs: 230000,
+        albumImageUrl: "https://i.ytimg.com/vi/jfKfPfyJRdk/maxresdefault.jpg"
+    },
+    {
+        id: "1cQh1ccqu8M",
+        title: "SLOW DANCING IN THE DARK",
+        artist: "Joji",
+        durationMs: 209000,
+        albumImageUrl: "https://i.ytimg.com/vi/1cQh1ccqu8M/maxresdefault.jpg"
+    },
+    {
+        id: "bo_efYhYU2A",
+        title: "Blinding Lights",
+        artist: "The Weeknd",
+        durationMs: 200000,
+        albumImageUrl: "https://i.ytimg.com/vi/4NRXx6U8ABQ/maxresdefault.jpg"
+    },
+];
+
+export const getMockPlaylists = (): Playlist[] => [
+    {
+        id: "PL4fGSI1pQAa6Avo-Z12oFkC9GqG9pD_u5",
+        title: "Trending Music 2026",
+        description: "The hottest tracks globally right now. A fallback playlist when API quota is exhausted.",
+        imageUrl: MOCK_TRACKS[0].albumImageUrl || "",
+        tracks: MOCK_TRACKS,
+    },
+    {
+        id: "PL4fGSI1pQAa5Q2U2a2UcwR1aZ0fH90wN-",
+        title: "Late Night Drive",
+        description: "Atmospheric tracks for midnight cruising.",
+        imageUrl: MOCK_TRACKS[1].albumImageUrl || "",
+        tracks: MOCK_TRACKS,
+    }
+];
 
 // Helper to pull the best available thumbnail (16:9 ratio, to be cropped by UI)
 const getBestThumbnailUrl = (thumbnails: { maxres?: { url: string }, high?: { url: string }, medium?: { url: string }, default?: { url: string } }): string => {
@@ -117,7 +165,8 @@ export const searchMusic = async (query: string, order: string = "relevance", ma
     });
 
     if (!response.ok) {
-        throw new Error(`[YouTube API] Search failed: ${response.status} ${response.statusText}`);
+        console.warn(`[YouTube API] Search failed: ${response.status} ${response.statusText}. Using mock fallback.`);
+        return MOCK_TRACKS;
     }
 
     const data = await response.json();
@@ -151,7 +200,8 @@ export const searchPlaylists = async (query: string): Promise<Playlist[]> => {
     });
 
     if (!response.ok) {
-        throw new Error(`[YouTube API] Playlist search failed: ${response.status} ${response.statusText}`);
+        console.warn(`[YouTube API] Playlist search failed: ${response.status} ${response.statusText}. Using mock playlists.`);
+        return getMockPlaylists();
     }
 
     const data = await response.json();
@@ -184,7 +234,10 @@ export const getPlaylistDetails = async (playlistId: string): Promise<Playlist> 
     ]);
 
     if (!playlistRes.ok) {
-        throw new Error(`[YouTube API] Playlist details failed: ${playlistRes.status} ${playlistRes.statusText}`);
+        console.warn(`[YouTube API] Playlist details failed: ${playlistRes.status} ${playlistRes.statusText}. Sending mock data.`);
+        const mocks = getMockPlaylists();
+        // Return a mock playlist, preferring the one requested if we somehow mocked its ID
+        return mocks.find(m => m.id === playlistId) || { ...mocks[0], id: playlistId };
     }
 
     const playlistData = await playlistRes.json();

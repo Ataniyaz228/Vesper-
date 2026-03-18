@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Heart } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Heart, ListMusic, ListPlus } from "lucide-react";
+import { AddToPlaylistPicker } from "@/components/playlists/AddToPlaylistPicker";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { useMetadataStore } from "@/store/useMetadataStore";
@@ -33,7 +34,7 @@ function AmbientGlow({ imageUrl }: { imageUrl?: string }) {
 }
 
 export const GlobalAudioPlayer = () => {
-    const { currentTrack, isPlaying, isLoading, progress, duration, volume, togglePlay, nextTrack, prevTrack, setVolume, seekTo, setTrackArt } = usePlayerStore();
+    const { currentTrack, isPlaying, isLoading, progress, duration, volume, togglePlay, nextTrack, prevTrack, setVolume, seekTo, setTrackArt, toggleQueue, isQueueOpen } = usePlayerStore();
     const { toggleLikeTrack, isTrackLiked } = useLibraryStore();
     const liked = currentTrack ? isTrackLiked(currentTrack.id) : false;
 
@@ -74,6 +75,8 @@ export const GlobalAudioPlayer = () => {
     const [isDrag, setIsDrag] = useState(false);
     const [hover, setHover] = useState(false);
     const [showVol, setShowVol] = useState(false);
+    const [pickerOpen, setPickerOpen] = useState(false);
+    const [pickerAnchor, setPickerAnchor] = useState<DOMRect | undefined>(undefined);
     const barRef = useRef<HTMLDivElement>(null);
     const volTout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -199,6 +202,46 @@ export const GlobalAudioPlayer = () => {
                                 )}
                             />
                         </button>
+
+                        <button
+                            onClick={(e) => { e.stopPropagation(); toggleQueue(); }}
+                            className={cn(
+                                "p-1.5 rounded-lg transition-all",
+                                isQueueOpen
+                                    ? "bg-white/12 text-white"
+                                    : "text-white/20 hover:text-white/50 hover:bg-white/5"
+                            )}
+                            title="Очередь воспроизведения"
+                        >
+                            <ListMusic className="w-4 h-4" />
+                        </button>
+
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setPickerAnchor(e.currentTarget.getBoundingClientRect());
+                                setPickerOpen(p => !p);
+                            }}
+                            className={cn(
+                                "p-1.5 rounded-lg transition-all",
+                                pickerOpen
+                                    ? "bg-white/12 text-white"
+                                    : "text-white/20 hover:text-white/50 hover:bg-white/5"
+                            )}
+                            title="Добавить в плейлист"
+                        >
+                            <ListPlus className="w-4 h-4" />
+                        </button>
+
+                        {/* Add to playlist portal */}
+                        {currentTrack && (
+                            <AddToPlaylistPicker
+                                track={currentTrack}
+                                open={pickerOpen}
+                                onClose={() => setPickerOpen(false)}
+                                anchorRect={pickerAnchor}
+                            />
+                        )}
                     </div>
 
                     {/* Time + Volume */}
