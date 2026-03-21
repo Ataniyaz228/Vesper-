@@ -1,5 +1,6 @@
 import "server-only";
 import { getCleanMetadata } from "./metadata";
+import { logger } from "./logger";
 
 // -----------------------------------------------------------------------------
 // STRICT TYPESCRIPT INTERFACES
@@ -13,7 +14,7 @@ export interface Track {
     id: string; // videoId
     title: string;
     artist: string; // channelTitle
-    durationMs: number; // YouTube search/playlist doesn't return duration natively without extra calls
+    durationMs: number;
     albumImageUrl?: string;
 }
 
@@ -26,14 +27,13 @@ export interface Playlist {
 }
 
 export type Album = Playlist;
-// Since YouTube doesn't have "Albums" in the traditional sense, 
+// Since YouTube doesn't have "Albums" in the traditional sense,
 // we will alias Playlist to Album to maintain our UI primitives' structure.
 
 // -----------------------------------------------------------------------------
 // YOUTUBE DATA API CONFIG
 // -----------------------------------------------------------------------------
 const getApiKeys = (): string[] => {
-    // Load primary key and any backups (YOUTUBE_API_KEY_2, YOUTUBE_API_KEY_3, etc.)
     const keys = [];
     if (process.env.YOUTUBE_API_KEY) keys.push(process.env.YOUTUBE_API_KEY);
     if (process.env.YOUTUBE_API_KEY_2) keys.push(process.env.YOUTUBE_API_KEY_2);
@@ -47,49 +47,31 @@ const getApiKeys = (): string[] => {
 
 const BASE_URL = "https://www.googleapis.com/youtube/v3";
 
-// Maintain current working key index in memory (best-effort across hot reloads)
-let currentKeyIndex = 0;
-
 /**
- * Intelligent fetch wrapper that tries multiple API keys if the current one hits a Quota (403) or Rate Limit (429)
+ * Stateless fetch wrapper — tries all keys from index 0 on every request.
+ * No module-level state that resets on cold start.
+ * 403 / 429 → try next key. Other errors → return immediately.
  */
 async function fetchWithFallback(url: URL, init?: RequestInit): Promise<Response> {
     const keys = getApiKeys();
-    let lastResponse: Response | null = null;
 
-    for (let attempts = 0; attempts < keys.length; attempts++) {
-        const testIndex = (currentKeyIndex + attempts) % keys.length;
-        const testKey = keys[testIndex];
-
-        // Attach the key we are testing
-        url.searchParams.set("key", testKey);
-
+    for (let i = 0; i < keys.length; i++) {
+        url.searchParams.set("key", keys[i]);
         const response = await fetch(url.toString(), init);
 
-        if (response.ok) {
-            // Update global index so subsequent calls use this working key first
-            if (currentKeyIndex !== testIndex) {
-                console.info(`[YouTube API] Successfully switched to backup key at index ${testIndex}`);
-                currentKeyIndex = testIndex;
-            }
-            return response;
-        }
+        if (response.ok) return response;
 
         if (response.status === 403 || response.status === 429) {
-            console.warn(`[YouTube API] Key at index ${testIndex} failed (Status: ${response.status}). Trying next fallback key if available...`);
-            lastResponse = response;
-            continue; // Move to next iteration and try next key
+            logger.warn(`[YouTube] Key ${i} quota exceeded (${response.status}), trying next`);
+            continue;
         }
 
-        // For other errors (400, 404, etc.), don't retry keys, just return the failure
+        // Other errors (400, 404, etc.) — don't retry, return as-is
         return response;
     }
 
-    // If all keys fail (e.g. all out of quota), return the last failed response to trigger mock data fallback
-    if (!lastResponse) {
-        throw new Error("No YouTube API keys provided or all requests failed immediately.");
-    }
-    return lastResponse as Response;
+    logger.error("[YouTube] All API keys exhausted");
+    return new Response(null, { status: 503 });
 }
 
 // -----------------------------------------------------------------------------
@@ -145,7 +127,7 @@ const getBestThumbnailUrl = (thumbnails: { maxres?: { url: string }, high?: { ur
 };
 
 // -----------------------------------------------------------------------------
-// DATA FETCHING FUNCTIONS 
+// DATA FETCHING FUNCTIONS
 // -----------------------------------------------------------------------------
 
 export const searchMusic = async (query: string, order: string = "relevance", maxResults: number = 20): Promise<Track[]> => {
@@ -153,19 +135,16 @@ export const searchMusic = async (query: string, order: string = "relevance", ma
     searchUrl.searchParams.append("part", "snippet");
     searchUrl.searchParams.append("q", query);
     searchUrl.searchParams.append("type", "video");
-    searchUrl.searchParams.append("videoCategoryId", "10"); // 10 = Music Category
+    searchUrl.searchParams.append("videoCategoryId", "10");
     searchUrl.searchParams.append("maxResults", String(maxResults));
     searchUrl.searchParams.append("order", order);
-    // Key will be appended inside fetchWithFallback
 
     const response = await fetchWithFallback(searchUrl, {
-        next: {
-            revalidate: 3600, // Edge cache search queries for 1 hour to preserve quota
-        },
+        next: { revalidate: 3600 },
     });
 
     if (!response.ok) {
-        console.warn(`[YouTube API] Search failed: ${response.status} ${response.statusText}. Using mock fallback.`);
+        logger.warn(`[YouTube] Search failed: ${response.status} ${response.statusText}. Using mock fallback.`);
         return MOCK_TRACKS;
     }
 
@@ -173,7 +152,6 @@ export const searchMusic = async (query: string, order: string = "relevance", ma
 
     const tracks: Track[] = data.items.map((item: { id: { videoId: string }, snippet: { title: string, channelTitle: string, thumbnails: { maxres?: { url: string }, high?: { url: string }, medium?: { url: string }, default?: { url: string } } } }) => {
         const { title, artist } = getCleanMetadata(item.snippet.title, item.snippet.channelTitle);
-
         return {
             id: item.id.videoId,
             title,
@@ -194,13 +172,11 @@ export const searchPlaylists = async (query: string): Promise<Playlist[]> => {
     searchUrl.searchParams.append("maxResults", "8");
 
     const response = await fetchWithFallback(searchUrl, {
-        next: {
-            revalidate: 3600, // Edge cache
-        },
+        next: { revalidate: 3600 },
     });
 
     if (!response.ok) {
-        console.warn(`[YouTube API] Playlist search failed: ${response.status} ${response.statusText}. Using mock playlists.`);
+        logger.warn(`[YouTube] Playlist search failed: ${response.status} ${response.statusText}. Using mock playlists.`);
         return getMockPlaylists();
     }
 
@@ -211,43 +187,38 @@ export const searchPlaylists = async (query: string): Promise<Playlist[]> => {
         title: item.snippet.title,
         description: item.snippet.description,
         imageUrl: getBestThumbnailUrl(item.snippet.thumbnails),
-        tracks: [], // Tracks aren't loaded in search results
+        tracks: [],
     }));
 };
 
 export const getPlaylistDetails = async (playlistId: string): Promise<Playlist> => {
-    // 1. Fetch playlist metadata
     const playlistUrl = new URL(`${BASE_URL}/playlists`);
     playlistUrl.searchParams.append("part", "snippet");
     playlistUrl.searchParams.append("id", playlistId);
 
-    // 2. Fetch up to 50 playlist items
     const itemsUrl = new URL(`${BASE_URL}/playlistItems`);
     itemsUrl.searchParams.append("part", "snippet");
     itemsUrl.searchParams.append("playlistId", playlistId);
     itemsUrl.searchParams.append("maxResults", "50");
 
-    // Execute both requests in parallel for performance using the fallback wrapper
     const [playlistRes, itemsRes] = await Promise.all([
         fetchWithFallback(playlistUrl, { next: { revalidate: 3600 } }),
         fetchWithFallback(itemsUrl, { next: { revalidate: 3600 } }),
     ]);
 
     if (!playlistRes.ok) {
-        console.warn(`[YouTube API] Playlist details failed: ${playlistRes.status} ${playlistRes.statusText}. Sending mock data.`);
+        logger.warn(`[YouTube] Playlist details failed: ${playlistRes.status} ${playlistRes.statusText}. Sending mock data.`);
         const mocks = getMockPlaylists();
-        // Return a mock playlist, preferring the one requested if we somehow mocked its ID
         return mocks.find(m => m.id === playlistId) || { ...mocks[0], id: playlistId };
     }
 
     const playlistData = await playlistRes.json();
 
-    // Items might return 404 for auto-generated radio mixes (RD...) or private lists.
     let itemsData = { items: [] };
     if (itemsRes.ok) {
         itemsData = await itemsRes.json();
     } else {
-        console.warn(`Could not fetch items for playlist ${playlistId}. API returned: ${itemsRes.status} ${itemsRes.statusText}`);
+        logger.warn(`[YouTube] Could not fetch items for playlist ${playlistId}: ${itemsRes.status} ${itemsRes.statusText}`);
     }
 
     if (!playlistData.items || playlistData.items.length === 0) {
@@ -256,13 +227,11 @@ export const getPlaylistDetails = async (playlistId: string): Promise<Playlist> 
 
     const playlistSnippet = playlistData.items[0].snippet;
 
-    // Map the playlist items (videos)
     const tracks = itemsData.items.map((item: { snippet: { title: string, videoOwnerChannelTitle?: string, channelTitle: string, resourceId: { videoId: string }, thumbnails: { maxres?: { url: string }, high?: { url: string }, medium?: { url: string }, default?: { url: string } } } }) => {
         const { title, artist } = getCleanMetadata(
             item.snippet.title,
             item.snippet.videoOwnerChannelTitle || item.snippet.channelTitle
         );
-
         return {
             id: item.snippet.resourceId.videoId,
             title,
@@ -277,6 +246,6 @@ export const getPlaylistDetails = async (playlistId: string): Promise<Playlist> 
         title: playlistSnippet.title,
         description: playlistSnippet.description,
         imageUrl: getBestThumbnailUrl(playlistSnippet.thumbnails),
-        tracks: tracks,
+        tracks,
     };
 };

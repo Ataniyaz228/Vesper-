@@ -3,6 +3,7 @@
  * Connects to Last.fm API to determine track genres/tags.
  * Includes a filter to strip out non-genre metadata.
  */
+import { logger } from './logger';
 
 const LASTFM_API_KEY = process.env.LASTFM_API_KEY;
 const BASE_URL = "https://ws.audioscrobbler.com/2.0/";
@@ -16,7 +17,7 @@ const BLACKLIST = new Set([
 
 export async function getGenreForArtist(artistName: string): Promise<string> {
     if (!LASTFM_API_KEY) {
-        console.warn("[lastfm] Missing LASTFM_API_KEY. Defaulting to 'Unknown'.");
+        logger.warn("[lastfm] Missing LASTFM_API_KEY. Defaulting to 'Unknown'.");
         return "Unknown";
     }
 
@@ -46,7 +47,7 @@ export async function getGenreForArtist(artistName: string): Promise<string> {
 
         return "Alternative"; // Generic fallback if no specific tags found
     } catch (error) {
-        console.error("[lastfm] Error fetching tags:", error);
+        logger.error("[lastfm] Error fetching tags:", error);
         return "Unknown";
     }
 }

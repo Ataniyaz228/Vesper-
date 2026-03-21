@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Track } from '@/lib/youtube';
+import { usePlayerUIStore } from './usePlayerUIStore';
 
 interface PlayerState {
     // Audio State
@@ -13,6 +14,11 @@ interface PlayerState {
     currentTrack: Track | null;
     queue: Track[];           // auto queue (album / playlist context)
     userQueue: Track[];       // manually added by user — plays first
+    originalQueue: Track[];   // copy before shuffle, used to restore on shuffle-off
+
+    // Playback options
+    shuffle: boolean;
+    repeatMode: 'none' | 'one' | 'all';
 
     // Crossfade
     crossfadeDuration: number; // seconds, 0 = off
@@ -37,6 +43,10 @@ interface PlayerState {
     setTrackArt: (trackId: string, url: string) => void;
     reportListen: () => Promise<void>;
 
+    // Playback option actions
+    toggleShuffle: () => void;
+    cycleRepeat: () => void;
+
     // Queue actions
     addToQueue: (track: Track) => void;
     removeFromQueue: (index: number) => void;
@@ -46,17 +56,23 @@ interface PlayerState {
     // Crossfade
     setCrossfadeDuration: (n: number) => void;
 
-    // UI State
+    // ── Deprecated UI accessors (use usePlayerUIStore instead) ─────────────────
+    /** @deprecated use usePlayerUIStore */
     isFullScreenPlayerOpen: boolean;
+    /** @deprecated use usePlayerUIStore */
     isQueueOpen: boolean;
+    /** @deprecated use usePlayerUIStore */
     toggleFullScreen: () => void;
+    /** @deprecated use usePlayerUIStore */
     setFullScreen: (val: boolean) => void;
+    /** @deprecated use usePlayerUIStore */
     setQueueOpen: (val: boolean) => void;
+    /** @deprecated use usePlayerUIStore */
     toggleQueue: () => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
-    // Initial State
+    // Initial Audio State
     isPlaying: false,
     volume: 1,
     progress: 0,
@@ -65,22 +81,53 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     currentTrack: null,
     queue: [],
     userQueue: [],
+    originalQueue: [],
     crossfadeDuration: 4,
-    isFullScreenPlayerOpen: false,
-    isQueueOpen: false,
+    shuffle: false,
+    repeatMode: 'none',
 
     listenAccumulator: 0,
     wasReported: false,
     isLoading: false,
 
-    // ── UI ────────────────────────────────────────────────────────
-    toggleFullScreen: () => set((s) => ({ isFullScreenPlayerOpen: !s.isFullScreenPlayerOpen })),
-    setFullScreen: (val) => set({ isFullScreenPlayerOpen: val }),
-    setIsLoading: (val) => set({ isLoading: val }),
-    setQueueOpen: (val) => set({ isQueueOpen: val }),
-    toggleQueue: () => set((s) => ({ isQueueOpen: !s.isQueueOpen })),
+    // ── Deprecated UI bridges (delegates to usePlayerUIStore) ─────────────────
+    get isFullScreenPlayerOpen() { return usePlayerUIStore.getState().isFullScreenPlayerOpen; },
+    get isQueueOpen() { return usePlayerUIStore.getState().isQueueOpen; },
+    toggleFullScreen: () => usePlayerUIStore.getState().toggleFullScreen(),
+    setFullScreen: (val) => usePlayerUIStore.getState().setFullScreen(val),
+    setQueueOpen: (val) => usePlayerUIStore.getState().setQueueOpen(val),
+    toggleQueue: () => usePlayerUIStore.getState().toggleQueue(),
 
-    // ── Crossfade ─────────────────────────────────────────────────
+    setIsLoading: (val) => set({ isLoading: val }),
+
+    // ── Playback options ──────────────────────────────────────────────
+    toggleShuffle: () => set((s) => {
+        const turningOn = !s.shuffle;
+        if (turningOn) {
+            // Save original queue, then Fisher-Yates shuffle
+            const original = [...s.queue];
+            const shuffled = [...s.queue];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            // Move current track to front of shuffled list so "next" is truly random
+            if (s.currentTrack) {
+                const ci = shuffled.findIndex(t => t.id === s.currentTrack!.id);
+                if (ci > 0) { shuffled.splice(ci, 1); shuffled.unshift(s.currentTrack); }
+            }
+            return { shuffle: true, originalQueue: original, queue: shuffled };
+        } else {
+            // Restore original order
+            const restored = s.originalQueue.length > 0 ? s.originalQueue : s.queue;
+            return { shuffle: false, queue: restored, originalQueue: [] };
+        }
+    }),
+    cycleRepeat: () => set((s) => ({
+        repeatMode: s.repeatMode === 'none' ? 'all' : s.repeatMode === 'all' ? 'one' : 'none'
+    })),
+
+    // ── Crossfade ───────────────────────────────────────────────────
     setCrossfadeDuration: (n) => set({ crossfadeDuration: Math.max(0, Math.min(12, n)) }),
 
     // ── Seek ──────────────────────────────────────────────────────
@@ -91,15 +138,19 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     // ── Play ──────────────────────────────────────────────────────
     playTrack: (track, queue) => {
-        set({
+        set((s) => ({
             currentTrack: track,
             isPlaying: true,
             progress: 0,
             listenAccumulator: 0,
             wasReported: false,
             isLoading: true,
-            ...(queue && { queue }),
-        });
+            ...(queue && {
+                queue,
+                // Reset originalQueue when a new context is loaded
+                originalQueue: s.shuffle ? queue : [],
+            }),
+        }));
     },
 
     togglePlay: () => set((s) => ({
@@ -133,6 +184,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     reportListen: async () => {
         const { currentTrack, wasReported, duration } = get();
         if (!currentTrack || wasReported) return;
+
+        // Guard: skip if user has no session cookie — avoids guaranteed 401
+        if (typeof document !== 'undefined' && !document.cookie.includes('aura_session')) return;
+
         set({ wasReported: true });
         try {
             const trackWithDuration = {
@@ -147,45 +202,62 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
                 body: JSON.stringify({ track: trackWithDuration })
             });
         } catch (e) {
-            console.error("Failed to report listen", e);
+            console.error('Failed to report listen', e);
         }
     },
 
     // ── Navigation ────────────────────────────────────────────────
     nextTrack: () => {
-        const { currentTrack, userQueue, queue } = get();
+        const { currentTrack, userQueue, queue, shuffle, repeatMode } = get();
         if (!currentTrack) return;
 
-        // User queue has priority
-        if (userQueue.length > 0) {
-            const [next, ...rest] = userQueue;
-            set({
-                currentTrack: next,
-                userQueue: rest,
-                isPlaying: true,
-                progress: 0,
-                listenAccumulator: 0,
-                wasReported: false,
-                isLoading: true,
-            });
-            return;
-        }
-
-        // Fall back to auto queue
-        if (queue.length === 0) return;
-        const currentIndex = queue.findIndex((t) => t.id === currentTrack.id);
-        if (currentIndex === -1 || currentIndex === queue.length - 1) {
-            set({ isPlaying: false, progress: 0, listenAccumulator: 0, wasReported: false, isLoading: false });
-            return;
-        }
-        set({
-            currentTrack: queue[currentIndex + 1],
+        const base = {
             isPlaying: true,
             progress: 0,
             listenAccumulator: 0,
             wasReported: false,
             isLoading: true,
-        });
+        };
+
+        // 1. Repeat one — restart the current track
+        if (repeatMode === 'one') {
+            set({ ...base, currentTrack, seekTarget: 0 });
+            return;
+        }
+
+        // 2. User queue has priority (ignores shuffle)
+        if (userQueue.length > 0) {
+            const [next, ...rest] = userQueue;
+            set({ ...base, currentTrack: next, userQueue: rest });
+            return;
+        }
+
+        // 3. Auto queue with shuffle or sequential
+        if (queue.length === 0) return;
+
+        if (shuffle) {
+            const candidates = queue.filter(t => t.id !== currentTrack.id);
+            if (candidates.length === 0) return;
+            const next = candidates[Math.floor(Math.random() * candidates.length)];
+            set({ ...base, currentTrack: next });
+            return;
+        }
+
+        const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
+
+        // End of queue
+        if (currentIndex === -1 || currentIndex === queue.length - 1) {
+            if (repeatMode === 'all') {
+                // Wrap around to first track
+                set({ ...base, currentTrack: queue[0] });
+            } else {
+                // repeatMode === 'none' — stop
+                set({ isPlaying: false, progress: 0, listenAccumulator: 0, wasReported: false, isLoading: false });
+            }
+            return;
+        }
+
+        set({ ...base, currentTrack: queue[currentIndex + 1] });
     },
 
     prevTrack: () => {

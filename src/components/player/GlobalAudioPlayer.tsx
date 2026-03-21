@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Heart, ListMusic, ListPlus } from "lucide-react";
 import { AddToPlaylistPicker } from "@/components/playlists/AddToPlaylistPicker";
 import { usePlayerStore } from "@/store/usePlayerStore";
+import { usePlayerUIStore } from "@/store/usePlayerUIStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { useMetadataStore } from "@/store/useMetadataStore";
 
@@ -34,7 +35,8 @@ function AmbientGlow({ imageUrl }: { imageUrl?: string }) {
 }
 
 export const GlobalAudioPlayer = () => {
-    const { currentTrack, isPlaying, isLoading, progress, duration, volume, togglePlay, nextTrack, prevTrack, setVolume, seekTo, setTrackArt, toggleQueue, isQueueOpen } = usePlayerStore();
+    const { currentTrack, isPlaying, isLoading, progress, duration, volume, togglePlay, nextTrack, prevTrack, setVolume, seekTo, setTrackArt } = usePlayerStore();
+    const { toggleQueue, isQueueOpen, toggleFullScreen } = usePlayerUIStore();
     const { toggleLikeTrack, isTrackLiked } = useLibraryStore();
     const liked = currentTrack ? isTrackLiked(currentTrack.id) : false;
 
@@ -122,7 +124,7 @@ export const GlobalAudioPlayer = () => {
                 <AmbientGlow imageUrl={currentTrack.albumImageUrl} />
 
                 {/* ── Main row ── */}
-                <div onClick={() => usePlayerStore.getState().toggleFullScreen()} className="relative z-10 flex items-center gap-4 px-4 pt-3.5 pb-3 cursor-pointer group">
+                <div onClick={() => toggleFullScreen()} className="relative z-10 flex items-center gap-4 px-4 pt-3.5 pb-3 cursor-pointer group">
 
                     {/* Album art */}
                     <AnimatePresence mode="popLayout">

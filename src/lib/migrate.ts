@@ -1,7 +1,7 @@
 /**
  * migrate.ts — One-shot migration script
  * Run with: npx tsx src/lib/migrate.ts
- * Creates the users table if it doesn't exist.
+ * Creates/updates all tables. Safe to re-run (idempotent).
  */
 import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
@@ -113,7 +113,45 @@ async function migrate() {
         FOR EACH ROW EXECUTE FUNCTION update_updated_at();
     `);
 
-    console.log("[migrate] ✓ Schema updated: users, liked_tracks, saved_playlists");
+    console.log("[migrate] ✓ Schema updated: users, liked_tracks, saved_playlists, listening_history");
+
+    // ── Rate limiting buckets (PostgreSQL token bucket) ───────────────────────
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS rate_limit_buckets (
+        key         TEXT        NOT NULL,
+        tokens      REAL        NOT NULL DEFAULT 0,
+        last_refill TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (key)
+      );
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_rate_limit_key ON rate_limit_buckets(key);`);
+    console.log("[migrate] ✓ rate_limit_buckets ready");
+
+    // ── Critical indices (user_id lookup paths) ───────────────────────────────
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_liked_tracks_user_id    ON liked_tracks(user_id);
+      CREATE INDEX IF NOT EXISTS idx_liked_tracks_user_track ON liked_tracks(user_id, track_id);
+      CREATE INDEX IF NOT EXISTS idx_listening_history_user  ON listening_history(user_id);
+      CREATE INDEX IF NOT EXISTS idx_listening_history_user_time ON listening_history(user_id, listened_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_listening_history_track ON listening_history(track_id);
+      CREATE INDEX IF NOT EXISTS idx_listening_history_time  ON listening_history(listened_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_saved_playlists_user    ON saved_playlists(user_id);
+    `);
+    console.log("[migrate] ✓ Indices ready");
+
+    // ── track_cache — normalised YouTube metadata ─────────────────────────────
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS track_cache (
+        track_id        TEXT        PRIMARY KEY,
+        title           TEXT        NOT NULL,
+        artist          TEXT        NOT NULL,
+        album_image_url TEXT,
+        duration_ms     INTEGER     DEFAULT 0,
+        updated_at      TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_track_cache_updated ON track_cache(updated_at DESC);`);
+    console.log("[migrate] ✓ track_cache ready");
   } finally {
     await pool.end();
   }

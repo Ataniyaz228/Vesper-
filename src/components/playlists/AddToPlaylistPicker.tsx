@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Check, ListMusic } from "lucide-react";
+import { Plus, Check, ListMusic, Loader2, Disc } from "lucide-react";
 import { usePlaylistsStore } from "@/store/usePlaylistsStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Track } from "@/lib/youtube";
@@ -12,13 +12,12 @@ interface AddToPlaylistPickerProps {
     track: Track;
     open: boolean;
     onClose: () => void;
-    /** Anchor the dropdown to this rect if provided */
     anchorRect?: DOMRect;
 }
 
 export function AddToPlaylistPicker({ track, open, onClose, anchorRect }: AddToPlaylistPickerProps) {
     const { user } = useAuthStore();
-    const { playlists, fetchPlaylists, addTrack, createPlaylist } = usePlaylistsStore();
+    const { playlists, fetchPlaylists, addTrack, createPlaylist, loading } = usePlaylistsStore();
     const [added, setAdded] = useState<Set<string>>(new Set());
     const [creating, setCreating] = useState(false);
 
@@ -27,26 +26,25 @@ export function AddToPlaylistPicker({ track, open, onClose, anchorRect }: AddToP
     }, [open, user, playlists.length, fetchPlaylists]);
 
     const handleAdd = async (playlistId: string) => {
-        setAdded((s) => new Set(s).add(playlistId));
+        setAdded(s => new Set(s).add(playlistId));
         await addTrack(playlistId, track);
     };
 
     const handleCreate = async () => {
         setCreating(true);
-        const pl = await createPlaylist(`Плейлист: ${track.title.slice(0, 24)}`);
+        const pl = await createPlaylist(`${track.title.slice(0, 22)}…`);
         if (pl) {
             await addTrack(pl.id, track);
-            setAdded((s) => new Set(s).add(pl.id));
+            setAdded(s => new Set(s).add(pl.id));
         }
         setCreating(false);
     };
 
-    // Try to intelligently position below anchor
     const style: React.CSSProperties = anchorRect
         ? {
             position: "fixed",
-            left: Math.min(anchorRect.left, window.innerWidth - 260),
-            top: anchorRect.bottom + 4,
+            left: Math.min(anchorRect.left, window.innerWidth - 268),
+            top: anchorRect.bottom + 8,
         }
         : {};
 
@@ -54,57 +52,87 @@ export function AddToPlaylistPicker({ track, open, onClose, anchorRect }: AddToP
         <AnimatePresence>
             {open && (
                 <>
+                    {/* Transparent backdrop */}
                     <div className="fixed inset-0 z-[80]" onClick={onClose} />
+
+                    {/* Dropdown */}
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.93, y: -4 }}
+                        initial={{ opacity: 0, scale: 0.92, y: -6 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.93, y: -4 }}
-                        transition={{ duration: 0.15 }}
-                        className="z-[81] w-56 rounded-xl border border-white/8 overflow-hidden"
+                        exit={{ opacity: 0, scale: 0.92, y: -6 }}
+                        transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                        className="z-[81] w-64 rounded-2xl overflow-hidden border border-white/[0.07]"
                         style={{
                             ...style,
-                            background: "rgba(12,12,18,0.97)",
-                            backdropFilter: "blur(32px)",
-                            boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
+                            background: "rgba(11,11,17,0.98)",
+                            backdropFilter: "blur(40px)",
+                            boxShadow: "0 24px 64px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,255,255,0.04)",
                             ...(anchorRect ? {} : { position: "relative" }),
                         }}
                     >
                         {/* Header */}
-                        <div className="px-3 py-2 border-b border-white/6 text-[11px] font-semibold uppercase tracking-widest text-white/30">
-                            Добавить в плейлист
+                        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.06]">
+                            <Disc className="w-3.5 h-3.5 text-white/25 flex-shrink-0" />
+                            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/30">
+                                В плейлист
+                            </span>
                         </div>
 
                         {/* New playlist */}
                         <button
                             onClick={handleCreate}
                             disabled={creating}
-                            className="flex items-center gap-2.5 w-full px-3 py-2.5 hover:bg-white/5 transition-colors text-sm text-white/60 hover:text-white disabled:opacity-50"
+                            className="flex items-center gap-3 w-full px-4 py-3 hover:bg-white/[0.05] transition-colors text-sm disabled:opacity-50 group"
                         >
-                            <Plus className="w-3.5 h-3.5 text-white/40" />
-                            Новый плейлист
+                            <div className="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/[0.08] flex items-center justify-center flex-shrink-0 group-hover:bg-white/[0.1] transition-colors">
+                                {creating
+                                    ? <Loader2 className="w-3.5 h-3.5 text-white/40 animate-spin" />
+                                    : <Plus className="w-3.5 h-3.5 text-white/40" />
+                                }
+                            </div>
+                            <span className="text-white/50 group-hover:text-white/80 transition-colors">
+                                Новый плейлист
+                            </span>
                         </button>
 
                         {/* Existing playlists */}
-                        <div className="max-h-52 overflow-y-auto border-t border-white/6">
-                            {playlists.length === 0 && (
-                                <p className="text-xs text-white/25 text-center py-4">Нет плейлистов</p>
+                        <div className="max-h-56 overflow-y-auto border-t border-white/[0.05]">
+                            {loading && playlists.length === 0 && (
+                                <div className="flex items-center justify-center py-6">
+                                    <Loader2 className="w-4 h-4 text-white/20 animate-spin" />
+                                </div>
                             )}
-                            {playlists.map((pl) => {
+                            {!loading && playlists.length === 0 && (
+                                <p className="text-xs text-white/20 text-center py-5 px-3">
+                                    Нет плейлистов
+                                </p>
+                            )}
+                            {playlists.map(pl => {
                                 const isAdded = added.has(pl.id);
                                 return (
                                     <button
                                         key={pl.id}
                                         onClick={() => !isAdded && handleAdd(pl.id)}
                                         className={cn(
-                                            "flex items-center gap-2.5 w-full px-3 py-2.5 transition-colors text-sm",
+                                            "flex items-center gap-3 w-full px-4 py-2.5 transition-all text-sm group",
                                             isAdded
-                                                ? "text-emerald-400 bg-emerald-500/5"
-                                                : "text-white/70 hover:text-white hover:bg-white/5"
+                                                ? "text-emerald-400 cursor-default"
+                                                : "text-white/60 hover:text-white hover:bg-white/[0.04]"
                                         )}
                                     >
-                                        <ListMusic className="w-3.5 h-3.5 text-white/25 flex-shrink-0" />
+                                        <div className={cn(
+                                            "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
+                                            isAdded
+                                                ? "bg-emerald-500/12 border border-emerald-500/20"
+                                                : "bg-white/[0.05] border border-white/[0.07] group-hover:bg-white/[0.09]"
+                                        )}>
+                                            {isAdded
+                                                ? <Check className="w-3.5 h-3.5" />
+                                                : <ListMusic className="w-3.5 h-3.5 text-white/25" />
+                                            }
+                                        </div>
                                         <span className="flex-1 text-left truncate">{pl.title}</span>
-                                        {isAdded && <Check className="w-3.5 h-3.5 flex-shrink-0" />}
+                                        <span className="text-[10px] opacity-30 flex-shrink-0">{pl.trackCount}</span>
                                     </button>
                                 );
                             })}

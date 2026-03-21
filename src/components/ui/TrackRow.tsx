@@ -21,6 +21,7 @@ export const TrackRow = React.forwardRef<HTMLDivElement, TrackRowProps>(
         const liked = track ? isTrackLiked(track.id) : false;
 
         const [pickerOpen, setPickerOpen] = React.useState(false);
+        const [pickerAnchor, setPickerAnchor] = React.useState<DOMRect | undefined>(undefined);
 
         const handleLike = (e: React.MouseEvent) => {
             e.stopPropagation();
@@ -29,7 +30,8 @@ export const TrackRow = React.forwardRef<HTMLDivElement, TrackRowProps>(
 
         const handleAddToPlaylist = (e: React.MouseEvent) => {
             e.stopPropagation();
-            setPickerOpen(true);
+            setPickerAnchor(e.currentTarget.getBoundingClientRect());
+            setPickerOpen(p => !p);
         };
 
         return (
@@ -103,6 +105,7 @@ export const TrackRow = React.forwardRef<HTMLDivElement, TrackRowProps>(
                         track={track}
                         open={pickerOpen}
                         onClose={() => setPickerOpen(false)}
+                        anchorRect={pickerAnchor}
                     />
                 )}
             </>

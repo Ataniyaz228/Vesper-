@@ -5,6 +5,8 @@ import { T, Rise, Label } from "@/components/vesper/Shared";
 
 export function AuraCard({ identity, stats, genres }: { identity: { name: string }; stats: { id: string; label: string; value: number; unit?: string }[]; genres: { name: string }[] }) {
     const ref = useRef<HTMLDivElement>(null);
+    // Stable hue computed once per mount — avoids hydration mismatch + jitter on every mouse move
+    const glareHue = useRef(Math.floor(Math.random() * 360));
     const mx = useMotionValue(0);
     const my = useMotionValue(0);
     const sx = useSpring(mx, { stiffness: 100, damping: 25 });
@@ -102,7 +104,7 @@ export function AuraCard({ identity, stats, genres }: { identity: { name: string
                         {/* 4. Iridescent Holographic Glare */}
                         <motion.div
                             className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none mix-blend-color-dodge"
-                            style={{ background: useMotionTemplate`radial-gradient(circle at ${glareX} ${glareY}, hsla(${Math.abs(Math.random() * 360)}, 100%, 70%, 0.3) 0%, transparent 60%)` }}
+                            style={{ background: useMotionTemplate`radial-gradient(circle at ${glareX} ${glareY}, hsla(${glareHue.current}, 100%, 70%, 0.3) 0%, transparent 60%)` }}
                         />
 
                         {/* ────── CONTENT ────── */}

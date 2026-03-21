@@ -3,7 +3,8 @@
 import React, { useRef, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePlayerStore } from "@/store/usePlayerStore";
-import { ChevronDown, Play, Pause, SkipBack, SkipForward, Heart, Volume2, VolumeX, Mic2, ListPlus } from "lucide-react";
+import { usePlayerUIStore } from "@/store/usePlayerUIStore";
+import { ChevronDown, Play, Pause, SkipBack, SkipForward, Heart, Volume2, VolumeX, Mic2, ListPlus, ListMusic } from "lucide-react";
 import { AddToPlaylistPicker } from "@/components/playlists/AddToPlaylistPicker";
 import { FastAverageColor } from "fast-average-color";
 import { useLibraryStore } from "@/store/useLibraryStore";
@@ -89,19 +90,19 @@ function AmbientBackground({ rgb, title }: { rgb: RGB, title: string }) {
 
 export const FullScreenPlayer = () => {
     const {
-        isFullScreenPlayerOpen,
         currentTrack,
         isPlaying,
         progress,
         duration,
-        setFullScreen,
         togglePlay,
         nextTrack,
         prevTrack,
         seekTo,
         volume,
-        setVolume
+        setVolume,
     } = usePlayerStore();
+
+    const { isFullScreenPlayerOpen, setFullScreen, toggleQueue, isQueueOpen } = usePlayerUIStore();
 
     const { toggleLikeTrack, isTrackLiked } = useLibraryStore();
     const liked = currentTrack ? isTrackLiked(currentTrack.id) : false;
@@ -299,7 +300,21 @@ export const FullScreenPlayer = () => {
                                 </button>
 
                                 <button
+                                    onClick={(e) => { e.stopPropagation(); toggleQueue(); }}
+                                    className={cn(
+                                        "p-2 rounded-full transition-all hover:scale-110 active:scale-90",
+                                        isQueueOpen
+                                            ? "bg-white/12 text-white"
+                                            : "text-white/20 hover:text-white/50"
+                                    )}
+                                    title="Очередь воспроизведения"
+                                >
+                                    <ListMusic className="w-6 h-6" />
+                                </button>
+
+                                <button
                                     onClick={(e) => {
+                                        e.stopPropagation();
                                         setPickerAnchor(e.currentTarget.getBoundingClientRect());
                                         setPickerOpen(p => !p);
                                     }}

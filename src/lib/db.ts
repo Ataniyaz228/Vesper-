@@ -4,6 +4,7 @@
  * Singleton pattern prevents connection pool exhaustion in Next.js during HMR.
  */
 import { Pool, QueryResultRow } from "pg";
+import { logger } from "./logger";
 
 declare global {
     // Allow global var to survive HMR without TS errors
@@ -18,7 +19,7 @@ function createPool(): Pool {
     });
 
     pool.on("error", (err) => {
-        console.error("[db] Unexpected pool error:", err);
+        logger.error("[db] Unexpected pool error:", err);
     });
 
     return pool;

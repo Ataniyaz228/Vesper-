@@ -12,9 +12,10 @@ import { useAuthStore } from "@/store/useAuthStore";
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function getGreeting() {
   const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 18) return "Good afternoon";
-  return "Good evening";
+  if (h < 12) return "Доброе утро";
+  if (h < 18) return "Добрый день";
+  if (h < 23) return "Добрый вечер";
+  return "Поздний вечер";
 }
 
 import { cleanTitle } from "@/lib/utils";
@@ -59,7 +60,7 @@ function HomeContent() {
         ]);
         if (trendingRes.ok) { const d: Playlist[] = await trendingRes.json(); setHero(d[2] ?? d[0] ?? null); setShelf(d.filter((_, i) => i !== 2).slice(0, 8)); }
         if (searchRes.ok) { const t: Track[] = await searchRes.json(); setTrending(t.slice(0, 5)); }
-      } catch { } finally { setLoadingShelf(false); }
+      } catch (err) { console.error('[Home] Failed to load trending/search data', err); } finally { setLoadingShelf(false); }
     })();
   }, []);
 
