@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Check, ListMusic, Loader2, Disc } from "lucide-react";
 import { usePlaylistsStore } from "@/store/usePlaylistsStore";
@@ -48,12 +49,18 @@ export function AddToPlaylistPicker({ track, open, onClose, anchorRect }: AddToP
         }
         : {};
 
-    return (
+    // Render in portal to escape CSS transform contexts (like Framer Motion Reorder.Item)
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+
+    if (!mounted) return null;
+
+    return createPortal(
         <AnimatePresence>
             {open && (
                 <>
                     {/* Transparent backdrop */}
-                    <div className="fixed inset-0 z-[199]" onClick={onClose} />
+                    <div className="fixed inset-0 z-[100]" onClick={(e) => { e.stopPropagation(); onClose(); }} />
 
                     {/* Dropdown */}
                     <motion.div
@@ -62,6 +69,7 @@ export function AddToPlaylistPicker({ track, open, onClose, anchorRect }: AddToP
                         exit={{ opacity: 0, scale: 0.92, y: -6 }}
                         transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
                         className="z-[201] w-64 rounded-2xl overflow-hidden border border-white/[0.07]"
+                        onClick={(e) => e.stopPropagation()}
                         style={{
                             ...style,
                             background: "rgba(11,11,17,0.98)",
@@ -140,6 +148,7 @@ export function AddToPlaylistPicker({ track, open, onClose, anchorRect }: AddToP
                     </motion.div>
                 </>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 }
