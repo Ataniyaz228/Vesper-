@@ -330,7 +330,7 @@
 	"variable": [
 		{
 			"key": "baseUrl",
-			"value": "http://localhost:3000",
+			"value": "https://vesper-ataniyaz228s-projects.vercel.app",
 			"type": "string"
 		}
 	]
