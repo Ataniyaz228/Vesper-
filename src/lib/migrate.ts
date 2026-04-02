@@ -16,9 +16,10 @@ async function migrate() {
   if (!connectionString) {
     throw new Error("DATABASE_URL is missing in environment variables.");
   }
+  const isNeon = connectionString.includes("neon.tech");
   const pool = new Pool({ 
     connectionString,
-    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false
+    ssl: (isNeon || process.env.NODE_ENV === "production") ? { rejectUnauthorized: false } : false
   });
 
   try {

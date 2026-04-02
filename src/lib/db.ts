@@ -12,11 +12,12 @@ declare global {
 }
 
 function createPool(): Pool {
+    const isNeon = process.env.DATABASE_URL?.includes("neon.tech");
     const pool = new Pool({
         connectionString: process.env.DATABASE_URL,
         max: 2,
         connectionTimeoutMillis: 10000,
-        ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+        ssl: (isNeon || process.env.NODE_ENV === "production") ? { rejectUnauthorized: false } : false,
     });
 
     pool.on("error", (err) => {
