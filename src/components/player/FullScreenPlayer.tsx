@@ -281,20 +281,26 @@ export const FullScreenPlayer = () => {
                     <div className="relative z-30 w-full flex flex-col items-center shrink-0 px-4 md:px-8 pb-3 md:pb-8 pt-1 md:pt-5 gap-1 md:gap-5">
 
                         {/* ── Mobile-only: stacked progress + controls ── */}
-                        <div className="md:hidden w-full flex flex-col gap-2 max-w-md mx-auto">
+                        <div className="md:hidden w-full flex flex-col gap-3 max-w-md mx-auto">
                             {/* Progress */}
-                            <div className="flex flex-col gap-1.5 w-full bg-white/[0.04] border border-white/[0.06] rounded-2xl px-4 py-2.5">
+                            <div
+                                className="flex flex-col gap-1.5 w-full bg-white/[0.04] border border-white/[0.06] rounded-2xl px-4 py-3"
+                                onClick={(e) => e.stopPropagation()}
+                            >
                                 <div className="flex justify-between items-center font-mono text-[10px] tracking-widest text-white/25">
                                     <span>{formatTime(progress)}</span>
                                     <span>{formatTime(duration)}</span>
                                 </div>
                                 <div
-                                    className="relative h-5 flex items-center cursor-pointer"
+                                    className="relative h-7 flex items-center cursor-pointer select-none"
                                     ref={barRef}
-                                    onMouseDown={(e) => { setIsDrag(true); handleSeek(e); }}
-                                    onMouseMove={(e) => { if (isDrag) handleSeek(e); }}
-                                    onMouseUp={() => setIsDrag(false)}
+                                    onClick={(e) => { e.stopPropagation(); handleSeek(e); }}
+                                    onMouseDown={(e) => { e.stopPropagation(); setIsDrag(true); handleSeek(e); }}
+                                    onMouseMove={(e) => { e.stopPropagation(); if (isDrag) handleSeek(e); }}
+                                    onMouseUp={(e) => { e.stopPropagation(); setIsDrag(false); }}
                                     onTouchStart={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
                                         if (!barRef.current || !duration) return;
                                         const r = barRef.current.getBoundingClientRect();
                                         const touch = e.touches[0];
@@ -302,20 +308,23 @@ export const FullScreenPlayer = () => {
                                         seekTo(val * duration);
                                     }}
                                     onTouchMove={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
                                         if (!barRef.current || !duration) return;
                                         const r = barRef.current.getBoundingClientRect();
                                         const touch = e.touches[0];
                                         const val = Math.max(0, Math.min(1, (touch.clientX - r.left) / r.width));
                                         seekTo(val * duration);
                                     }}
+                                    onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); }}
                                     style={{ touchAction: "none" }}
                                 >
-                                    <div className="absolute inset-x-0 h-[2px] bg-white/10 rounded-full overflow-hidden">
-                                        <div className="h-full bg-white/50" style={{ width: `${pct}%` }} />
+                                    <div className="absolute inset-x-0 h-[3px] bg-white/10 rounded-full overflow-hidden">
+                                        <div className="h-full bg-white/60 rounded-full" style={{ width: `${pct}%` }} />
                                     </div>
                                     <div
-                                        className="absolute h-3 w-3 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.5)]"
-                                        style={{ left: `calc(${pct}% - 6px)` }}
+                                        className="absolute h-4 w-4 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.6)] -translate-x-1/2"
+                                        style={{ left: `${pct}%` }}
                                     />
                                 </div>
                             </div>
@@ -439,14 +448,14 @@ export const FullScreenPlayer = () => {
                                     <span>{formatTime(duration)}</span>
                                 </div>
                                 <div
-                                    className="group relative h-4 flex items-center cursor-pointer"
+                                    className="group relative h-4 flex items-center cursor-pointer select-none"
                                     ref={barRef}
                                     onMouseEnter={() => setHover(true)}
                                     onMouseLeave={() => { setHover(false); setIsDrag(false); }}
-                                    onMouseDown={(e) => { setIsDrag(true); handleSeek(e); }}
-                                    onMouseMove={(e) => { if (isDrag) handleSeek(e); }}
-                                    onMouseUp={() => setIsDrag(false)}
-                                    onClick={handleSeek}
+                                    onClick={(e) => { e.stopPropagation(); handleSeek(e); }}
+                                    onMouseDown={(e) => { e.stopPropagation(); setIsDrag(true); handleSeek(e); }}
+                                    onMouseMove={(e) => { e.stopPropagation(); if (isDrag) handleSeek(e); }}
+                                    onMouseUp={(e) => { e.stopPropagation(); setIsDrag(false); }}
                                     style={{ touchAction: "none" }}
                                 >
                                     <div className="absolute inset-x-0 h-[1.5px] bg-white/10 rounded-full overflow-hidden">
